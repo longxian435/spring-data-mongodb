@@ -15,6 +15,7 @@
  */
 package org.springframework.data.mongodb.core.index;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -23,10 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.context.MappingContextEvent;
 import org.springframework.data.mongodb.MongoDbFactory;
+import org.springframework.data.mongodb.core.IndexOperations;
+import org.springframework.data.mongodb.core.IndexOperationsProvider;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver.IndexDefinitionHolder;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
@@ -36,13 +40,12 @@ import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import com.mongodb.MongoException;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.IndexOptions;
 
 /**
  * Component that inspects {@link MongoPersistentEntity} instances contained in the given {@link MongoMappingContext}
  * for indexing metadata and ensures the indexes to be available.
- * 
+ *
  * @author Jon Brisbin
  * @author Oliver Gierke
  * @author Philipp Schneider
@@ -55,39 +58,41 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 	private static final Logger LOGGER = LoggerFactory.getLogger(MongoPersistentEntityIndexCreator.class);
 
 	private final Map<Class<?>, Boolean> classesSeen = new ConcurrentHashMap<Class<?>, Boolean>();
-	private final MongoDbFactory mongoDbFactory;
+	private final IndexOperationsProvider indexOperationsProvider;
 	private final MongoMappingContext mappingContext;
 	private final IndexResolver indexResolver;
+	private final PersistenceExceptionTranslator exceptionTranslator;
 
 	/**
 	 * Creates a new {@link MongoPersistentEntityIndexCreator} for the given {@link MongoMappingContext} and
 	 * {@link MongoDbFactory}.
-	 * 
-	 * @param mappingContext must not be {@literal null}.
-	 * @param mongoDbFactory must not be {@literal null}.
+	 *  @param mappingContext must not be {@literal null}.
+	 * @param indexOperationsProvider must not be {@literal null}.
+	 * @param exceptionTranslator must not be {@literal null}.
 	 */
-	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, MongoDbFactory mongoDbFactory) {
-		this(mappingContext, mongoDbFactory, new MongoPersistentEntityIndexResolver(mappingContext));
+	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider, PersistenceExceptionTranslator exceptionTranslator) {
+		this(mappingContext, indexOperationsProvider, new MongoPersistentEntityIndexResolver(mappingContext), exceptionTranslator);
 	}
 
 	/**
 	 * Creates a new {@link MongoPersistentEntityIndexCreator} for the given {@link MongoMappingContext} and
 	 * {@link MongoDbFactory}.
-	 * 
-	 * @param mappingContext must not be {@literal null}.
-	 * @param mongoDbFactory must not be {@literal null}.
+	 *  @param mappingContext must not be {@literal null}.
+	 * @param indexOperationsProvider must not be {@literal null}.
 	 * @param indexResolver must not be {@literal null}.
+	 * @param exceptionTranslator must not be {@literal null}.
 	 */
-	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, MongoDbFactory mongoDbFactory,
-			IndexResolver indexResolver) {
-
-		Assert.notNull(mongoDbFactory);
+	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider,
+											 IndexResolver indexResolver, PersistenceExceptionTranslator exceptionTranslator) {
+		Assert.notNull(indexOperationsProvider);
 		Assert.notNull(mappingContext);
 		Assert.notNull(indexResolver);
+		Assert.notNull(exceptionTranslator);
 
-		this.mongoDbFactory = mongoDbFactory;
+		this.indexOperationsProvider = indexOperationsProvider;
 		this.mappingContext = mappingContext;
 		this.indexResolver = indexResolver;
+		this.exceptionTranslator = exceptionTranslator;
 
 		for (MongoPersistentEntity<?> entity : mappingContext.getPersistentEntities()) {
 			checkForIndexes(entity);
@@ -194,14 +199,14 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 				}
 			}
 
-			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection(), Document.class)
-					.createIndex(indexDefinition.getIndexKeys(), ops);
+			IndexOperations indexOperations = indexOperationsProvider.indexOps(indexDefinition.getCollection());
+			indexOperations.ensureIndex(indexDefinition);
 
 		} catch (MongoException ex) {
 
 			if (MongoDbErrorCodes.isDataIntegrityViolationCode(ex.getCode())) {
 
-				org.bson.Document existingIndex = fetchIndexInformation(indexDefinition);
+				IndexInfo existingIndex = fetchIndexInformation(indexDefinition);
 				String message = "Cannot create index for '%s' in collection '%s' with keys '%s' and options '%s'.";
 
 				if (existingIndex != null) {
@@ -214,7 +219,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 						ex);
 			}
 
-			RuntimeException exceptionToThrow = mongoDbFactory.getExceptionTranslator().translateExceptionIfPossible(ex);
+			RuntimeException exceptionToThrow = exceptionTranslator.translateExceptionIfPossible(ex);
 
 			throw exceptionToThrow != null ? exceptionToThrow : ex;
 		}
@@ -222,7 +227,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 	/**
 	 * Returns whether the current index creator was registered for the given {@link MappingContext}.
-	 * 
+	 *
 	 * @param context
 	 * @return
 	 */
@@ -230,7 +235,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 		return this.mappingContext.equals(context);
 	}
 
-	private org.bson.Document fetchIndexInformation(IndexDefinitionHolder indexDefinition) {
+	private IndexInfo fetchIndexInformation(IndexDefinitionHolder indexDefinition) {
 
 		if (indexDefinition == null) {
 			return null;
@@ -238,18 +243,15 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 		try {
 
+			IndexOperations indexOperations = indexOperationsProvider.indexOps(indexDefinition.getCollection());
 			Object indexNameToLookUp = indexDefinition.getIndexOptions().get("name");
 
-			MongoCursor<org.bson.Document> cursor = mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
-					.listIndexes(org.bson.Document.class).iterator();
+			List<IndexInfo> existingIndexes = indexOperations.getIndexInfo();
 
-			while (cursor.hasNext()) {
-
-				org.bson.Document index = cursor.next();
-				if (ObjectUtils.nullSafeEquals(indexNameToLookUp, index.get("name"))) {
-					return index;
-				}
-			}
+			return existingIndexes.stream().//
+					filter(indexInfo -> ObjectUtils.nullSafeEquals(indexNameToLookUp, indexInfo.getName())).//
+					findFirst().//
+					orElse(null);
 
 		} catch (Exception e) {
 			LOGGER.debug(

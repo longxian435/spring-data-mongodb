@@ -38,7 +38,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mapping.context.MappingContextEvent;
 import org.springframework.data.mongodb.MongoDbFactory;
+import org.springframework.data.mongodb.core.DefaultIndexOperations;
 import org.springframework.data.mongodb.core.MongoExceptionTranslator;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
@@ -52,7 +54,7 @@ import com.mongodb.client.model.IndexOptions;
 
 /**
  * Unit tests for {@link MongoPersistentEntityIndexCreator}.
- * 
+ *
  * @author Oliver Gierke
  * @author Philipp Schneider
  * @author Johno Crawford
@@ -65,7 +67,8 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	private @Mock MongoDbFactory factory;
 	private @Mock ApplicationContext context;
 	private @Mock MongoDatabase db;
-	private @Mock MongoCollection<Document> collection;
+	private @Mock MongoCollection<org.bson.Document> collection;
+	private MongoTemplate mongoTemplate;
 
 	ArgumentCaptor<org.bson.Document> keysCaptor;
 	ArgumentCaptor<IndexOptions> optionsCaptor;
@@ -79,7 +82,10 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		collectionCaptor = ArgumentCaptor.forClass(String.class);
 
 		when(factory.getDb()).thenReturn(db);
-		when(db.getCollection(collectionCaptor.capture(), eq(Document.class))).thenReturn(collection);
+		when(factory.getExceptionTranslator()).thenReturn(new MongoExceptionTranslator());
+		when(db.getCollection(collectionCaptor.capture(), eq(org.bson.Document.class))).thenReturn(collection);
+
+		mongoTemplate = new MongoTemplate(factory);
 
 		when(collection.createIndex(keysCaptor.capture(), optionsCaptor.capture())).thenReturn("OK");
 	}
@@ -89,7 +95,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Person.class);
 
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		assertThat(keysCaptor.getValue(), is(notNullValue()));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("fieldname"));
@@ -104,7 +110,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		MongoMappingContext mappingContext = new MongoMappingContext();
 		MongoMappingContext personMappingContext = prepareMappingContext(Person.class);
 
-		MongoPersistentEntityIndexCreator creator = new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		MongoPersistentEntityIndexCreator creator = new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		MongoPersistentEntity<?> entity = personMappingContext.getPersistentEntity(Person.class);
 		MappingContextEvent<MongoPersistentEntity<?>, MongoPersistentProperty> event = new MappingContextEvent<MongoPersistentEntity<?>, MongoPersistentProperty>(
@@ -124,7 +130,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		MongoMappingContext mappingContext = new MongoMappingContext();
 		mappingContext.initialize();
 
-		MongoPersistentEntityIndexCreator creator = new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		MongoPersistentEntityIndexCreator creator = new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 		assertThat(creator.isIndexCreatorFor(mappingContext), is(true));
 		assertThat(creator.isIndexCreatorFor(new MongoMappingContext()), is(false));
 	}
@@ -136,7 +142,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void triggersBackgroundIndexingIfConfigured() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(AnotherPerson.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		assertThat(keysCaptor.getValue(), is(notNullValue()));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("lastname"));
@@ -152,7 +158,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void expireAfterSecondsIfConfigured() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Milk.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		assertThat(keysCaptor.getValue(), is(notNullValue()));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("expiry"));
@@ -166,7 +172,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void createsNotNestedGeoSpatialIndexCorrectly() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Wrapper.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		assertThat(keysCaptor.getValue(), equalTo(new org.bson.Document().append("company.address.location", "2d")));
 
@@ -184,7 +190,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void autoGeneratedIndexNameShouldGenerateNoName() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(EntityWithGeneratedIndexName.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		assertThat(keysCaptor.getValue().containsKey("name"), is(false));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("lastname"));
@@ -199,11 +205,11 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void indexCreationShouldNotCreateNewCollectionForNestedGeoSpatialIndexStructures() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Wrapper.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(Document.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(org.bson.Document.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("wrapper"));
 	}
 
@@ -214,11 +220,11 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void indexCreationShouldNotCreateNewCollectionForNestedIndexStructures() {
 
 		MongoMappingContext mappingContext = prepareMappingContext(IndexedDocumentWrapper.class);
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(Document.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(org.bson.Document.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("indexedDocumentWrapper"));
 	}
 
@@ -234,7 +240,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Person.class);
 
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 	}
 
 	/**
@@ -249,7 +255,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		MongoMappingContext mappingContext = prepareMappingContext(Person.class);
 
-		new MongoPersistentEntityIndexCreator(mappingContext, factory);
+		new MongoPersistentEntityIndexCreator(mappingContext, mongoTemplate, new MongoExceptionTranslator());
 	}
 
 	private static MongoMappingContext prepareMappingContext(Class<?> type) {
