@@ -28,9 +28,12 @@ import org.springframework.data.mongodb.core.index.IndexField;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.util.Assert;
 
-import com.mongodb.DBCollection;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.IndexOptions;
 
 /**
  * Default implementation of {@link IndexOperations}.
@@ -70,12 +73,18 @@ public class DefaultIndexOperations implements IndexOperations {
 	 */
 	public void ensureIndex(final IndexDefinition indexDefinition) {
 		mongoOperations.execute(collectionName, new CollectionCallback<Object>() {
-			public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+
 				DBObject indexOptions = indexDefinition.getIndexOptions();
+
 				if (indexOptions != null) {
-					collection.createIndex(indexDefinition.getIndexKeys(), indexOptions);
+
+					IndexOptions ops = new IndexOptions();
+					// TODO: convert the index options here
+					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
+					throw new UnsupportedOperationException("need to create index with options here");
 				} else {
-					collection.createIndex(indexDefinition.getIndexKeys());
+					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys());
 				}
 				return null;
 			}
@@ -88,7 +97,7 @@ public class DefaultIndexOperations implements IndexOperations {
 	 */
 	public void dropIndex(final String name) {
 		mongoOperations.execute(collectionName, new CollectionCallback<Void>() {
-			public Void doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+			public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
 				collection.dropIndex(name);
 				return null;
 			}
@@ -111,9 +120,10 @@ public class DefaultIndexOperations implements IndexOperations {
 	@Deprecated
 	public void resetIndexCache() {
 		mongoOperations.execute(collectionName, new CollectionCallback<Void>() {
-			public Void doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+			public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
 
-				ReflectiveDBCollectionInvoker.resetIndexCache(collection);
+				// TODO remove this one
+				// ReflectiveDBCollectionInvoker.resetIndexCache(collection);
 				return null;
 			}
 		});
@@ -126,17 +136,20 @@ public class DefaultIndexOperations implements IndexOperations {
 	public List<IndexInfo> getIndexInfo() {
 
 		return mongoOperations.execute(collectionName, new CollectionCallback<List<IndexInfo>>() {
-			public List<IndexInfo> doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-				List<DBObject> dbObjectList = collection.getIndexInfo();
+			public List<IndexInfo> doInCollection(MongoCollection<DBObject> collection)
+					throws MongoException, DataAccessException {
+
+				MongoCursor<DBObject> dbObjectList = collection.listIndexes(DBObject.class).iterator();
 				return getIndexData(dbObjectList);
 			}
 
-			private List<IndexInfo> getIndexData(List<DBObject> dbObjectList) {
+			private List<IndexInfo> getIndexData(MongoCursor<DBObject> dbObjectList) {
 
 				List<IndexInfo> indexInfoList = new ArrayList<IndexInfo>();
 
-				for (DBObject ix : dbObjectList) {
+				while (dbObjectList.hasNext()) {
 
+					DBObject ix = dbObjectList.next();
 					DBObject keyDbObject = (DBObject) ix.get("key");
 					int numberOfElements = keyDbObject.keySet().size();
 

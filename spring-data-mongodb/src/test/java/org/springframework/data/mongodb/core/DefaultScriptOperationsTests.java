@@ -78,7 +78,7 @@ public class DefaultScriptOperationsTests {
 	@Before
 	public void setUp() {
 
-		template.getCollection(JAVASCRIPT_COLLECTION_NAME).remove(new BasicDBObject());
+		template.getCollection(JAVASCRIPT_COLLECTION_NAME).deleteMany(new BasicDBObject());
 		this.scriptOps = new DefaultScriptOperations(template);
 	}
 

@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 
 import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
+import com.mongodb.client.result.UpdateResult;
 
 /**
  * {@link ReflectiveWriteResultInvoker} provides reflective access to {@link WriteResult} API that is not consistently
@@ -62,6 +63,14 @@ final class ReflectiveWriteResultInvoker {
 	 * @return return in case of MongoDB Java driver version 2.
 	 */
 	public static boolean wasAcknowledged(WriteResult writeResult) {
+		return isMongo3Driver() ? ((Boolean) invokeMethod(WAS_ACKNOWLEDGED_METHOD, writeResult)).booleanValue() : true;
+	}
+
+	/**
+	 * @param writeResult
+	 * @return return in case of MongoDB Java driver version 2.
+	 */
+	public static boolean wasAcknowledged(UpdateResult writeResult) {
 		return isMongo3Driver() ? ((Boolean) invokeMethod(WAS_ACKNOWLEDGED_METHOD, writeResult)).booleanValue() : true;
 	}
 }

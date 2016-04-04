@@ -34,8 +34,11 @@ import org.springframework.data.mongodb.util.MongoDbErrorCodes;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.IndexOptions;
 
 /**
  * Component that inspects {@link MongoPersistentEntity} instances contained in the given {@link MongoMappingContext}
@@ -139,8 +142,12 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 		try {
 
-			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection()).createIndex(indexDefinition.getIndexKeys(),
-					indexDefinition.getIndexOptions());
+			IndexOptions opts = new IndexOptions();
+
+			// opts = indexDefinition.getIndexOptions()
+			// TODO create the options correctly
+			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
+					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), opts);
 
 		} catch (MongoException ex) {
 
@@ -185,7 +192,12 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 			Object indexNameToLookUp = indexDefinition.getIndexOptions().get("name");
 
-			for (DBObject index : mongoDbFactory.getDb().getCollection(indexDefinition.getCollection()).getIndexInfo()) {
+			MongoCursor<DBObject> cursor = mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
+					.listIndexes(DBObject.class).iterator();
+
+			while (cursor.hasNext()) {
+
+				DBObject index = cursor.next();
 				if (ObjectUtils.nullSafeEquals(indexNameToLookUp, index.get("name"))) {
 					return index;
 				}

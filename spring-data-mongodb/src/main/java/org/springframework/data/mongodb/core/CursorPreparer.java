@@ -16,6 +16,8 @@
 package org.springframework.data.mongodb.core;
 
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.client.MongoCursor;
 
 /**
  * Simple callback interface to allow customization of a {@link DBCursor}.
@@ -29,5 +31,5 @@ interface CursorPreparer {
 	 * 
 	 * @param cursor
 	 */
-	DBCursor prepare(DBCursor cursor);
+	MongoCursor<DBObject> prepare(MongoCursor<DBObject> cursor);
 }

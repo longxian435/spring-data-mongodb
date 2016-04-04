@@ -29,8 +29,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.ObjectUtils;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.client.MongoCollection;
 
 /**
  * Integration tests for {@link DefaultIndexOperations}.
@@ -42,18 +42,18 @@ import com.mongodb.DBObject;
 @ContextConfiguration("classpath:infrastructure.xml")
 public class DefaultIndexOperationsIntegrationTests {
 
-	static final DBObject GEO_SPHERE_2D = new BasicDBObject("loaction", "2dsphere");
+	static final BasicDBObject GEO_SPHERE_2D = new BasicDBObject("loaction", "2dsphere");
 
 	@Autowired MongoTemplate template;
 	DefaultIndexOperations indexOps;
-	DBCollection collection;
+	MongoCollection<DBObject> collection;
 
 	@Before
 	public void setUp() {
 
 		String collectionName = this.template.getCollectionName(DefaultIndexOperationsIntegrationTestsSample.class);
 
-		this.collection = this.template.getDb().getCollection(collectionName);
+		this.collection = this.template.getDb().getCollection(collectionName, DBObject.class);
 		this.collection.dropIndexes();
 
 		this.indexOps = new DefaultIndexOperations(template, collectionName);

@@ -36,6 +36,7 @@ import org.bson.types.ObjectId;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -56,10 +57,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.SerializationUtils;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.DBRef;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 /**
  * Unit tests for {@link DbRefMappingMongoConverter}.
@@ -113,11 +114,11 @@ public class DbRefMappingMongoConverterUnitTests {
 		DBRef dbRef = mock(DBRef.class);
 
 		if (MongoClientVersion.isMongo3Driver()) {
-			DB dbMock = mock(DB.class);
-			DBCollection collectionMock = mock(DBCollection.class);
+			MongoDatabase dbMock = mock(MongoDatabase.class);
+			MongoCollection collectionMock = mock(MongoCollection.class);
 			when(dbFactory.getDb()).thenReturn(dbMock);
-			when(dbMock.getCollection(anyString())).thenReturn(collectionMock);
-			when(collectionMock.findOne(anyObject())).thenReturn(mapValDBObject);
+			when(dbMock.getCollection(anyString(), DBObject.class)).thenReturn(collectionMock);
+			when(collectionMock.find(Matchers.any(BasicDBObject.class))).thenReturn(mapValDBObject);
 		} else {
 			when(dbRefResolver.fetch(dbRef)).thenReturn(mapValDBObject);
 		}

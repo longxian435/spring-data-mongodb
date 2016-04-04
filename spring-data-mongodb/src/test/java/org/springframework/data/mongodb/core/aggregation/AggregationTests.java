@@ -66,10 +66,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.util.JSON;
 
 /**
@@ -111,7 +110,7 @@ public class AggregationTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			CommandResult result = mongoTemplate.executeCommand("{ buildInfo: 1 }");
+			DBObject result = mongoTemplate.executeCommand("{ buildInfo: 1 }");
 			mongoVersion = Version.parse(result.get("version").toString());
 		}
 	}
@@ -153,14 +152,14 @@ public class AggregationTests {
 			mongoTemplate.execute(ZipInfo.class, new CollectionCallback<Void>() {
 
 				@Override
-				public Void doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+				public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
 
 					Scanner scanner = null;
 					try {
 						scanner = new Scanner(new BufferedInputStream(new ClassPathResource("zips.json").getInputStream()));
 						while (scanner.hasNextLine()) {
 							String zipInfoRecord = scanner.nextLine();
-							collection.save((DBObject) JSON.parse(zipInfoRecord));
+							collection.insertOne((DBObject) JSON.parse(zipInfoRecord));
 						}
 					} catch (Exception e) {
 						if (scanner != null) {
@@ -1542,16 +1541,16 @@ public class AggregationTests {
 
 	private void createTagDocuments() {
 
-		DBCollection coll = mongoTemplate.getCollection(INPUT_COLLECTION);
+		MongoCollection<DBObject> coll = mongoTemplate.getCollection(INPUT_COLLECTION);
 
-		coll.insert(createDocument("Doc1", "spring", "mongodb", "nosql"));
-		coll.insert(createDocument("Doc2", "spring", "mongodb"));
-		coll.insert(createDocument("Doc3", "spring"));
+		coll.insertOne(createDocument("Doc1", "spring", "mongodb", "nosql"));
+		coll.insertOne(createDocument("Doc2", "spring", "mongodb"));
+		coll.insertOne(createDocument("Doc3", "spring"));
 	}
 
-	private static DBObject createDocument(String title, String... tags) {
+	private static BasicDBObject createDocument(String title, String... tags) {
 
-		DBObject doc = new BasicDBObject("title", title);
+		BasicDBObject doc = new BasicDBObject("title", title);
 		List<String> tagList = new ArrayList<String>();
 
 		for (String tag : tags) {

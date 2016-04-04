@@ -26,6 +26,7 @@ import org.springframework.util.Assert;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.DBRef;
+import com.mongodb.client.model.Filters;
 
 /**
  * {@link ReflectiveDBRefResolver} provides reflective access to {@link DBRef} API that is not consistently available
@@ -58,7 +59,9 @@ class ReflectiveDBRefResolver {
 		if (isMongo3Driver()) {
 
 			Assert.notNull(factory, "DbFactory to fetch DB from must not be null!");
-			return factory.getDb().getCollection(ref.getCollectionName()).findOne(ref.getId());
+
+			return factory.getDb().getCollection(ref.getCollectionName(), DBObject.class).find(Filters.eq("_id", ref.getId()))
+					.first();
 		}
 
 		return (DBObject) invokeMethod(FETCH_METHOD, ref);

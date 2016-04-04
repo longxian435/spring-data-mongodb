@@ -30,10 +30,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
 
 /**
  * @author Oliver Gierke
@@ -66,9 +67,9 @@ public abstract class AbstractIntegrationTests {
 			if (!collectionName.startsWith("system")) {
 				operations.execute(collectionName, new CollectionCallback<Void>() {
 					@Override
-					public Void doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-						collection.remove(new BasicDBObject());
-						assertThat(collection.find().hasNext(), is(false));
+					public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+						collection.deleteMany(new BasicDBObject());
+						assertThat(collection.find().iterator().hasNext(), is(false));
 						return null;
 					}
 				});

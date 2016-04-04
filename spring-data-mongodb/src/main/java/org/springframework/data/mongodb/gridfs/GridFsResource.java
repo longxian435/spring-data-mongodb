@@ -15,11 +15,13 @@
  */
 package org.springframework.data.mongodb.gridfs;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 
+import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.gridfs.GridFSDBFile;
 
 /**
@@ -29,15 +31,17 @@ import com.mongodb.gridfs.GridFSDBFile;
  */
 public class GridFsResource extends InputStreamResource {
 
-	private final GridFSDBFile file;
+	private final GridFSFile file;
 
 	/**
 	 * Creates a new {@link GridFsResource} from the given {@link GridFSDBFile}.
 	 * 
 	 * @param file must not be {@literal null}.
 	 */
-	public GridFsResource(GridFSDBFile file) {
-		super(file.getInputStream());
+	public GridFsResource(GridFSFile file) {
+
+		// TODO ugly hack!
+		super(new ByteArrayInputStream(new byte[] {}));
 		this.file = file;
 	}
 
