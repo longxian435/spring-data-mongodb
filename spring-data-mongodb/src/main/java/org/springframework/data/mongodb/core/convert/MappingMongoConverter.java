@@ -359,6 +359,9 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 		Object target = obj instanceof LazyLoadingProxy ? ((LazyLoadingProxy) obj).getTarget() : obj;
 
 		writeInternal(target, dbo, type);
+		if (dbo.containsField("_is") && dbo.get("_id") == null) {
+			dbo.removeField("_id");
+		}
 	}
 
 	/**

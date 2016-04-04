@@ -40,9 +40,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.client.MongoCollection;
 
 /**
  * Integration tests for group-by operations.
@@ -103,7 +103,8 @@ public class GroupByTests {
 
 		DBObject gc = GroupBy.key("a", "b").getGroupByObject();
 
-		assertThat(gc.toString(), is("{ \"key\" : { \"a\" : 1 , \"b\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }"));
+		assertThat(gc.toString(),
+				is("{ \"key\" : { \"a\" : 1 , \"b\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }"));
 	}
 
 	@Test
@@ -119,10 +120,9 @@ public class GroupByTests {
 	public void simpleGroupFunction() {
 
 		createGroupByData();
-		GroupByResults<XObject> results = mongoTemplate.group(
-				"group_test_collection",
-				GroupBy.key("x").initialDocument(new BasicDBObject("count", 0))
-						.reduceFunction("function(doc, prev) { prev.count += 1 }"), XObject.class);
+		GroupByResults<XObject> results = mongoTemplate.group("group_test_collection", GroupBy.key("x")
+				.initialDocument(new BasicDBObject("count", 0)).reduceFunction("function(doc, prev) { prev.count += 1 }"),
+				XObject.class);
 
 		assertMapReduceResults(results);
 	}
@@ -131,10 +131,11 @@ public class GroupByTests {
 	public void simpleGroupWithKeyFunction() {
 
 		createGroupByData();
-		GroupByResults<XObject> results = mongoTemplate.group(
-				"group_test_collection",
-				GroupBy.keyFunction("function(doc) { return { x : doc.x }; }").initialDocument("{ count: 0 }")
-						.reduceFunction("function(doc, prev) { prev.count += 1 }"), XObject.class);
+		GroupByResults<XObject> results = mongoTemplate
+				.group(
+						"group_test_collection", GroupBy.keyFunction("function(doc) { return { x : doc.x }; }")
+								.initialDocument("{ count: 0 }").reduceFunction("function(doc, prev) { prev.count += 1 }"),
+						XObject.class);
 
 		assertMapReduceResults(results);
 	}
@@ -143,10 +144,10 @@ public class GroupByTests {
 	public void simpleGroupWithFunctionsAsResources() {
 
 		createGroupByData();
-		GroupByResults<XObject> results = mongoTemplate.group(
-				"group_test_collection",
+		GroupByResults<XObject> results = mongoTemplate.group("group_test_collection",
 				GroupBy.keyFunction("classpath:keyFunction.js").initialDocument("{ count: 0 }")
-						.reduceFunction("classpath:groupReduce.js"), XObject.class);
+						.reduceFunction("classpath:groupReduce.js"),
+				XObject.class);
 
 		assertMapReduceResults(results);
 	}
@@ -155,11 +156,10 @@ public class GroupByTests {
 	public void simpleGroupWithQueryAndFunctionsAsResources() {
 
 		createGroupByData();
-		GroupByResults<XObject> results = mongoTemplate.group(
-				where("x").gt(0),
-				"group_test_collection",
-				keyFunction("classpath:keyFunction.js").initialDocument("{ count: 0 }").reduceFunction(
-						"classpath:groupReduce.js"), XObject.class);
+		GroupByResults<XObject> results = mongoTemplate.group(where("x").gt(0), "group_test_collection",
+				keyFunction("classpath:keyFunction.js").initialDocument("{ count: 0 }")
+						.reduceFunction("classpath:groupReduce.js"),
+				XObject.class);
 
 		assertMapReduceResults(results);
 	}
@@ -186,13 +186,13 @@ public class GroupByTests {
 
 	private void createGroupByData() {
 
-		DBCollection c = mongoTemplate.getDb().getCollection("group_test_collection");
+		MongoCollection<DBObject> c = mongoTemplate.getDb().getCollection("group_test_collection", DBObject.class);
 
-		c.save(new BasicDBObject("x", 1));
-		c.save(new BasicDBObject("x", 1));
-		c.save(new BasicDBObject("x", 2));
-		c.save(new BasicDBObject("x", 3));
-		c.save(new BasicDBObject("x", 3));
-		c.save(new BasicDBObject("x", 3));
+		c.insertOne(new BasicDBObject("x", 1));
+		c.insertOne(new BasicDBObject("x", 1));
+		c.insertOne(new BasicDBObject("x", 2));
+		c.insertOne(new BasicDBObject("x", 3));
+		c.insertOne(new BasicDBObject("x", 3));
+		c.insertOne(new BasicDBObject("x", 3));
 	}
 }

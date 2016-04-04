@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.bson.BsonDocument;
+import org.bson.RawBsonDocument;
 import org.bson.types.ObjectId;
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -86,13 +86,13 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.DBRef;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.ListIndexesIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -401,11 +401,12 @@ public class MongoTemplateTests {
 	public void testReadIndexInfoForIndicesCreatedViaMongoShellCommands() throws Exception {
 
 		String command = "db." + template.getCollectionName(Person.class)
-				+ ".createIndex({'age':-1}, {'unique':true, 'sparse':true})";
+				+ ".createIndex({'age':-1}, {'unique':true, 'sparse':true}), 1";
 		template.indexOps(Person.class).dropAllIndexes();
 
 		assertThat(template.indexOps(Person.class).getIndexInfo().isEmpty(), is(true));
-		factory.getDb().runCommand(BsonDocument.parse(command));
+
+		factory.getDb().runCommand(RawBsonDocument.parse(command));
 
 		ListIndexesIterable<org.bson.Document> indexInfo = template.getCollection(template.getCollectionName(Person.class))
 				.listIndexes();
@@ -1025,7 +1026,7 @@ public class MongoTemplateTests {
 		UpdateResult wr = template.updateMulti(new Query(), u, PersonWithIdPropertyOfTypeObjectId.class);
 
 		if (wasAcknowledged(wr)) {
-			assertThat(wr.getModifiedCount(), is(2));
+			assertThat(wr.getModifiedCount(), is(2L));
 		}
 
 		Query q1 = new Query(Criteria.where("age").in(11, 21));
@@ -1273,19 +1274,14 @@ public class MongoTemplateTests {
 			}
 		}, new CursorPreparer() {
 
-			public DBCursor prepare(DBCursor cursor) {
+			public FindIterable<DBObject> prepare(FindIterable<DBObject> cursor) {
 				cursor.limit(1);
-				return cursor;
-			}
-
-			@Override
-			public MongoCursor<DBObject> prepare(MongoCursor<DBObject> cursor) {
 				return cursor;
 			}
 
 		});
 		assertEquals(1, names.size());
-		// template.remove(new Query(), Person.class);
+		template.remove(new Query(), Person.class);
 	}
 
 	/**
@@ -2761,8 +2757,8 @@ public class MongoTemplateTests {
 		assertThat(result, hasSize(2));
 
 		assertThat(template.getDb().getCollection("sample")
-				.count(new BasicDBObject("field", new BasicDBObject("$in", Arrays.asList("spring", "mongodb")))), is(0));
-		assertThat(template.getDb().getCollection("sample").count(new BasicDBObject("field", "data")), is(1));
+				.count(new BasicDBObject("field", new BasicDBObject("$in", Arrays.asList("spring", "mongodb")))), is(0L));
+		assertThat(template.getDb().getCollection("sample").count(new BasicDBObject("field", "data")), is(1L));
 	}
 
 	/**

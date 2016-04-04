@@ -59,6 +59,7 @@ import org.springframework.util.SerializationUtils;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.DBRef;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -118,7 +119,10 @@ public class DbRefMappingMongoConverterUnitTests {
 			MongoCollection collectionMock = mock(MongoCollection.class);
 			when(dbFactory.getDb()).thenReturn(dbMock);
 			when(dbMock.getCollection(anyString(), DBObject.class)).thenReturn(collectionMock);
-			when(collectionMock.find(Matchers.any(BasicDBObject.class))).thenReturn(mapValDBObject);
+
+			FindIterable fi = mock(FindIterable.class);
+			when(fi.first()).thenReturn(mapValDBObject);
+			when(collectionMock.find(Matchers.any(BasicDBObject.class))).thenReturn(fi);
 		} else {
 			when(dbRefResolver.fetch(dbRef)).thenReturn(mapValDBObject);
 		}

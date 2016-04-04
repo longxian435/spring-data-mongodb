@@ -18,6 +18,7 @@ package org.springframework.data.mongodb.core.geo;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,10 +37,10 @@ import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoCollection;
 
 /**
  * Integration tests for geo-spatial indexing.
@@ -137,9 +138,12 @@ public class GeoSpatialIndexTests extends AbstractIntegrationTests {
 		return template.execute(entityType, new CollectionCallback<Boolean>() {
 
 			@SuppressWarnings("unchecked")
-			public Boolean doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+			public Boolean doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
 
-				for (DBObject indexInfo : collection.getIndexInfo()) {
+				List<DBObject> indexes = new ArrayList<DBObject>();
+				collection.listIndexes(DBObject.class).into(indexes);
+
+				for (DBObject indexInfo : indexes) {
 
 					DBObject keys = (DBObject) indexInfo.get("key");
 					Map<String, Object> keysMap = keys.toMap();

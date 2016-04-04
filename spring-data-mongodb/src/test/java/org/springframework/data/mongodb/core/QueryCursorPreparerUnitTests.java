@@ -31,7 +31,7 @@ import org.springframework.data.mongodb.core.query.Meta;
 import org.springframework.data.mongodb.core.query.Query;
 
 import com.mongodb.DBObject;
-import com.mongodb.client.MongoCursor;
+import com.mongodb.client.FindIterable;
 
 /**
  * Unit tests for {@link QueryCursorPreparer}.
@@ -44,9 +44,9 @@ import com.mongodb.client.MongoCursor;
 public class QueryCursorPreparerUnitTests {
 
 	@Mock MongoDbFactory factory;
-	@Mock MongoCursor<DBObject> cursor;
+	@Mock FindIterable<DBObject> cursor;
 
-	@Mock MongoCursor<DBObject> cursorToUse;
+	@Mock FindIterable<DBObject> cursorToUse;
 
 	@Before
 	public void setUp() {
@@ -133,7 +133,7 @@ public class QueryCursorPreparerUnitTests {
 		// verify(cursorToUse).addSpecial(eq("$snapshot"), eq(true));
 	}
 
-	private MongoCursor<DBObject> pepare(Query query) {
+	private FindIterable<DBObject> pepare(Query query) {
 
 		CursorPreparer preparer = new MongoTemplate(factory).new QueryCursorPreparer(query, null);
 		return preparer.prepare(cursor);

@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.BulkOperationException;
 import org.springframework.data.mongodb.core.BulkOperations.BulkMode;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -37,6 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import com.mongodb.MongoBulkWriteException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 
@@ -109,10 +109,10 @@ public class DefaultBulkOperationsIntegrationTests {
 		try {
 			createBulkOps(BulkMode.ORDERED).insert(documents).execute();
 			fail();
-		} catch (BulkOperationException e) {
-			assertThat(e.getResult().getInsertedCount(), is(1)); // fails after first error
-			assertThat(e.getErrors(), notNullValue());
-			assertThat(e.getErrors().size(), is(1));
+		} catch (MongoBulkWriteException e) {
+			assertThat(e.getWriteResult().getInsertedCount(), is(1)); // fails after first error
+			assertThat(e.getWriteErrors(), notNullValue());
+			assertThat(e.getWriteErrors().size(), is(1));
 		}
 	}
 
@@ -138,10 +138,10 @@ public class DefaultBulkOperationsIntegrationTests {
 		try {
 			createBulkOps(BulkMode.UNORDERED).insert(documents).execute();
 			fail();
-		} catch (BulkOperationException e) {
-			assertThat(e.getResult().getInsertedCount(), is(2)); // two docs were inserted
-			assertThat(e.getErrors(), notNullValue());
-			assertThat(e.getErrors().size(), is(1));
+		} catch (MongoBulkWriteException e) {
+			assertThat(e.getWriteResult().getInsertedCount(), is(2)); // two docs were inserted
+			assertThat(e.getWriteErrors(), notNullValue());
+			assertThat(e.getWriteErrors().size(), is(1));
 		}
 	}
 

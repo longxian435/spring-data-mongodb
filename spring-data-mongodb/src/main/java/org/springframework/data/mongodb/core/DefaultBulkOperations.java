@@ -33,6 +33,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteManyModel;
 import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.UpdateManyModel;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
@@ -296,29 +297,16 @@ class DefaultBulkOperations implements BulkOperations {
 		Assert.notNull(query, "Query must not be null!");
 		Assert.notNull(update, "Update must not be null!");
 
-		// BulkWriteRequestBuilder builder = bulk.find(query.getQueryObject());
-		//
-		// com.mongodb.bulk.BulkWriteResult
-
 		UpdateOptions options = new UpdateOptions();
 		options.upsert(upsert);
 
-		models.add(new UpdateOneModel<DBObject>((BasicDBObject) query.getQueryObject(),
-				(BasicDBObject) update.getUpdateObject(), options));
-
-		if (upsert) {
-
-			if (multi) {
-				throw new UnsupportedOperationException("neeet to handle muli upsert update!");
-			}
-
+		if (multi) {
+			models.add(new UpdateOneModel<DBObject>((BasicDBObject) query.getQueryObject(),
+					(BasicDBObject) update.getUpdateObject(), options));
 		} else {
-
-			if (multi) {
-				throw new UnsupportedOperationException("neeet to handle muli update!");
-			}
+			models.add(new UpdateManyModel<DBObject>((BasicDBObject) query.getQueryObject(),
+					(BasicDBObject) update.getUpdateObject(), options));
 		}
-
 		return this;
 	}
 
