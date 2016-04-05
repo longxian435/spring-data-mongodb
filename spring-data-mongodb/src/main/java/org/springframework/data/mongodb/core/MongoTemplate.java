@@ -47,6 +47,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.authentication.UserCredentials;
@@ -1041,7 +1042,13 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 			maybeEmitEvent(new BeforeSaveEvent<T>(objectToSave, dbObject, collectionName));
 			Update update = Update.fromDBObject(dbObject, ID_FIELD);
 
-			doUpdate(collectionName, query, update, objectToSave.getClass(), false, false);
+			UpdateResult result = doUpdate(collectionName, query, update, objectToSave.getClass(), false, false);
+
+			if (result.getModifiedCount() == 0) {
+				throw new OptimisticLockingFailureException(
+						String.format("Cannot save entity %s with version %s to collection %s. Has it been modified meanwhile?", id,
+								versionNumber, collectionName));
+			}
 			maybeEmitEvent(new AfterSaveEvent<T>(objectToSave, dbObject, collectionName));
 		}
 	}
