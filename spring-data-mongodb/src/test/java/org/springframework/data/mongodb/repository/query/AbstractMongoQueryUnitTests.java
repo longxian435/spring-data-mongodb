@@ -142,7 +142,7 @@ public class AbstractMongoQueryUnitTests {
 	@Test
 	public void testDeleteExecutionReturnsNrDocumentsDeletedFromWriteResult() {
 
-		when(writeResultMock.getN()).thenReturn(100);
+		when(deleteResultMock.getDeletedCount()).thenReturn(100L);
 		when(mongoOperationsMock.remove(Matchers.any(Query.class), eq(Person.class), eq("persons")))
 				.thenReturn(deleteResultMock);
 

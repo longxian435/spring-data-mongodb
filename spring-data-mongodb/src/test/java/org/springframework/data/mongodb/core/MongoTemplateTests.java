@@ -405,7 +405,7 @@ public class MongoTemplateTests {
 
 		assertThat(template.indexOps(Person.class).getIndexInfo().isEmpty(), is(true));
 
-		factory.getLegacyDb().command(command);
+		factory.getDb().runCommand(new org.bson.Document("eval", command));
 
 		ListIndexesIterable<org.bson.Document> indexInfo = template.getCollection(template.getCollectionName(Person.class))
 				.listIndexes();
@@ -424,7 +424,7 @@ public class MongoTemplateTests {
 			}
 		}
 
-		assertThat(indexKey, IsMapContaining.<String, Object> hasEntry("age", -1));
+		assertThat(indexKey, IsMapContaining.<String, Object> hasEntry("age", -1D));
 		assertThat(unique, is(true));
 
 		IndexInfo info = template.indexOps(Person.class).getIndexInfo().get(1);
