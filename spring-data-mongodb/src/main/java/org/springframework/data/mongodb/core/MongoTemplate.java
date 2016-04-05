@@ -891,8 +891,8 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 			DBObject dbDoc = new BasicDBObject();
 			writer.write(objectToSave, dbDoc);
 
-			if (dbDoc.containsField("_id") && dbDoc.get("_id") == null) {
-				dbDoc.removeField("_id");
+			if (dbDoc.containsField(ID_FIELD) && dbDoc.get(ID_FIELD) == null) {
+				dbDoc.removeField(ID_FIELD);
 			}
 			return dbDoc;
 		} else {
@@ -1135,7 +1135,16 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 				MongoAction mongoAction = new MongoAction(writeConcern, MongoActionOperation.SAVE, collectionName, entityClass,
 						dbDoc, null);
 				WriteConcern writeConcernToUse = prepareWriteConcern(mongoAction);
-				if (writeConcernToUse == null) {
+
+				if (!dbDoc.containsField(ID_FIELD)) {
+					if (writeConcernToUse == null) {
+						collection.insertOne(dbDoc);
+					} else {
+						collection.withWriteConcern(writeConcernToUse).insertOne(dbDoc);
+					}
+				}
+
+				else if (writeConcernToUse == null) {
 					collection.replaceOne(Filters.eq(ID_FIELD, dbDoc.get(ID_FIELD)), dbDoc, new UpdateOptions().upsert(true));
 				} else {
 					collection.withWriteConcern(writeConcernToUse).replaceOne(Filters.eq(ID_FIELD, dbDoc.get(ID_FIELD)), dbDoc,
@@ -2588,5 +2597,9 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 
 	public Mongo getMongo() {
 		return mongo;
+	}
+
+	public MongoDbFactory getMongoDbFactory() {
+		return mongoDbFactory;
 	}
 }

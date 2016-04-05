@@ -53,4 +53,6 @@ public interface MongoDbFactory {
 	 * @return will never be {@literal null}.
 	 */
 	PersistenceExceptionTranslator getExceptionTranslator();
+
+	DB getLegacyDb();
 }

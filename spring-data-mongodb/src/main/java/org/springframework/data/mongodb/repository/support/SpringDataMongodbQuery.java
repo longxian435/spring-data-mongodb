@@ -52,7 +52,7 @@ class SpringDataMongodbQuery<T> extends AbstractMongodbQuery<T, SpringDataMongod
 	public SpringDataMongodbQuery(final MongoOperations operations, final Class<? extends T> type,
 			String collectionName) {
 
-		super(((MongoTemplate) operations).getMongo().getDB("foo").getCollection(collectionName),
+		super(((MongoTemplate) operations).getMongoDbFactory().getLegacyDb().getCollection(collectionName),
 				new Function<DBObject, T>() {
 					public T apply(DBObject input) {
 						return operations.getConverter().read(type, input);

@@ -232,4 +232,10 @@ public class SimpleMongoDbFactory implements DisposableBean, MongoDbFactory {
 	public PersistenceExceptionTranslator getExceptionTranslator() {
 		return this.exceptionTranslator;
 	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public DB getLegacyDb() {
+		return mongo.getDB(databaseName);
+	}
 }

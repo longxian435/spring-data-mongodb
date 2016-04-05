@@ -17,6 +17,7 @@ package org.springframework.data.mongodb.core.index;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,12 +143,63 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 		try {
 
-			IndexOptions opts = new IndexOptions();
+			IndexOptions ops = new IndexOptions();
+
+			if (indexDefinition.getIndexOptions() != null) {
+
+				DBObject indexOptions = indexDefinition.getIndexOptions();
+
+				if (indexOptions.containsField("name")) {
+					ops = ops.name(indexOptions.get("name").toString());
+				}
+				if (indexOptions.containsField("unique")) {
+					ops = ops.unique((Boolean) indexOptions.get("unique"));
+				}
+				// if(indexOptions.containsField("dropDuplicates")) {
+				// ops = ops.((boolean)indexOptions.get("dropDuplicates"));
+				// }
+				if (indexOptions.containsField("sparse")) {
+					ops = ops.sparse((Boolean) indexOptions.get("sparse"));
+				}
+				if (indexOptions.containsField("background")) {
+					ops = ops.background((Boolean) indexOptions.get("background"));
+				}
+				if (indexOptions.containsField("expireAfterSeconds")) {
+					ops = ops.expireAfter((Long) indexOptions.get("expireAfterSeconds"), TimeUnit.SECONDS);
+				}
+				if (indexOptions.containsField("min")) {
+					ops = ops.min(((Number) indexOptions.get("min")).doubleValue());
+				}
+				if (indexOptions.containsField("max")) {
+					ops = ops.max(((Number) indexOptions.get("max")).doubleValue());
+				}
+				if (indexOptions.containsField("bits")) {
+					ops = ops.bits((Integer) indexOptions.get("bits"));
+				}
+				if (indexOptions.containsField("bucketSize")) {
+					ops = ops.bucketSize(((Number) indexOptions.get("bucketSize")).doubleValue());
+				}
+				if (indexOptions.containsField("default_language")) {
+					ops = ops.defaultLanguage(indexOptions.get("default_language").toString());
+				}
+				if (indexOptions.containsField("language_override")) {
+					ops = ops.languageOverride(indexOptions.get("language_override").toString());
+				}
+				if (indexOptions.containsField("weights")) {
+					ops = ops.weights((BasicDBObject) indexOptions.get("weights"));
+				}
+
+				for (String key : indexOptions.keySet()) {
+					if (ObjectUtils.nullSafeEquals("2dsphere", indexOptions.get(key))) {
+						ops = ops.sphereVersion(2);
+					}
+				}
+			}
 
 			// opts = indexDefinition.getIndexOptions()
 			// TODO create the options correctly
 			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
-					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), opts);
+					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
 
 		} catch (MongoException ex) {
 

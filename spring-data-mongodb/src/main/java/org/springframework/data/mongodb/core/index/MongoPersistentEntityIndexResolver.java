@@ -16,8 +16,10 @@
 package org.springframework.data.mongodb.core.index;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentProperty;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 import com.mongodb.BasicDBObject;
@@ -203,8 +206,22 @@ public class MongoPersistentEntityIndexResolver implements IndexResolver {
 	private Collection<? extends IndexDefinitionHolder> potentiallyCreateTextIndexDefinition(
 			MongoPersistentEntity<?> root) {
 
-		TextIndexDefinitionBuilder indexDefinitionBuilder = new TextIndexDefinitionBuilder()
-				.named(root.getType().getSimpleName() + "_TextIndex");
+		String name = root.getType().getSimpleName() + "_TextIndex";
+		if (name.getBytes().length > 127) {
+			String[] args = ClassUtils.getShortNameAsProperty(root.getType()).split("\\.");
+			name = "";
+			Iterator<String> it = Arrays.asList(args).iterator();
+			while (it.hasNext()) {
+
+				if (!it.hasNext()) {
+					name += it.next() + "_TextIndex";
+				} else {
+					name += (it.next().charAt(0) + ".");
+				}
+			}
+
+		}
+		TextIndexDefinitionBuilder indexDefinitionBuilder = new TextIndexDefinitionBuilder().named(name);
 
 		if (StringUtils.hasText(root.getLanguage())) {
 			indexDefinitionBuilder.withDefaultLanguage(root.getLanguage());

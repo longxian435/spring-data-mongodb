@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mongodb.core.index.IndexDefinition;
@@ -80,9 +81,48 @@ public class DefaultIndexOperations implements IndexOperations {
 				if (indexOptions != null) {
 
 					IndexOptions ops = new IndexOptions();
+					if (indexOptions.containsField("name")) {
+						ops = ops.name(indexOptions.get("name").toString());
+					}
+					if (indexOptions.containsField("unique")) {
+						ops = ops.unique((Boolean) indexOptions.get("unique"));
+					}
+					// if(indexOptions.containsField("dropDuplicates")) {
+					// ops = ops.((boolean)indexOptions.get("dropDuplicates"));
+					// }
+					if (indexOptions.containsField("sparse")) {
+						ops = ops.sparse((Boolean) indexOptions.get("sparse"));
+					}
+					if (indexOptions.containsField("background")) {
+						ops = ops.background((Boolean) indexOptions.get("background"));
+					}
+					if (indexOptions.containsField("expireAfterSeconds")) {
+						ops = ops.expireAfter((Long) indexOptions.get("expireAfterSeconds"), TimeUnit.SECONDS);
+					}
+					if (indexOptions.containsField("min")) {
+						ops = ops.min(((Number) indexOptions.get("min")).doubleValue());
+					}
+					if (indexOptions.containsField("max")) {
+						ops = ops.max(((Number) indexOptions.get("max")).doubleValue());
+					}
+					if (indexOptions.containsField("bits")) {
+						ops = ops.bits((Integer) indexOptions.get("bits"));
+					}
+					if (indexOptions.containsField("bucketSize")) {
+						ops = ops.bucketSize(((Number) indexOptions.get("bucketSize")).doubleValue());
+					}
+					if (indexOptions.containsField("default_language")) {
+						ops = ops.defaultLanguage(indexOptions.get("default_language").toString());
+					}
+					if (indexOptions.containsField("language_override")) {
+						ops = ops.languageOverride(indexOptions.get("language_override").toString());
+					}
+					if (indexOptions.containsField("weights")) {
+						ops = ops.weights((BasicDBObject) indexOptions.get("weights"));
+					}
+
 					// TODO: convert the index options here
 					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
-					throw new UnsupportedOperationException("need to create index with options here");
 				} else {
 					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys());
 				}
