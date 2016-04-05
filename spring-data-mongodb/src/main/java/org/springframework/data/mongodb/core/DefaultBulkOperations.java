@@ -30,6 +30,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteException;
 import com.mongodb.DBObject;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteManyModel;
 import com.mongodb.client.model.InsertOneModel;
@@ -265,13 +266,14 @@ class DefaultBulkOperations implements BulkOperations {
 	@Override
 	public com.mongodb.bulk.BulkWriteResult execute() {
 
-		// MongoAction action = new MongoAction(defaultWriteConcern, MongoActionOperation.BULK, collectionName, entityType,
-		// null, null);
-		// WriteConcern writeConcern = writeConcernResolver.resolve(action);
-
 		try {
 
-			return mongoOperations.getCollection(collectionName).bulkWrite(models, bulkOptions);
+			MongoCollection<DBObject> collection = mongoOperations.getCollection(collectionName);
+			if (defaultWriteConcern != null) {
+				collection = collection.withWriteConcern(defaultWriteConcern);
+			}
+
+			return collection.bulkWrite(models, bulkOptions);
 
 		} catch (BulkWriteException o_O) {
 
@@ -301,10 +303,10 @@ class DefaultBulkOperations implements BulkOperations {
 		options.upsert(upsert);
 
 		if (multi) {
-			models.add(new UpdateOneModel<DBObject>((BasicDBObject) query.getQueryObject(),
+			models.add(new UpdateManyModel<DBObject>((BasicDBObject) query.getQueryObject(),
 					(BasicDBObject) update.getUpdateObject(), options));
 		} else {
-			models.add(new UpdateManyModel<DBObject>((BasicDBObject) query.getQueryObject(),
+			models.add(new UpdateOneModel<DBObject>((BasicDBObject) query.getQueryObject(),
 					(BasicDBObject) update.getUpdateObject(), options));
 		}
 		return this;
@@ -319,7 +321,6 @@ class DefaultBulkOperations implements BulkOperations {
 			case UNORDERED:
 				return options.ordered(false);
 		}
-
 		throw new IllegalStateException("BulkMode was null!");
 	}
 }
