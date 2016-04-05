@@ -20,12 +20,13 @@ import static org.springframework.data.mongodb.core.query.Criteria.*;
 import static org.springframework.data.mongodb.core.query.Query.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.bson.RawBsonDocument;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mongodb.core.script.ExecutableMongoScript;
@@ -35,6 +36,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoDatabase;
 
@@ -100,9 +102,11 @@ class DefaultScriptOperations implements ScriptOperations {
 			@Override
 			public Object doInDB(MongoDatabase db) throws MongoException, DataAccessException {
 
-				throw new UnsupportedOperationException("where's eval in this damned driver?");
-				// 	return db.eval(script.getCode(), convertScriptArgs(false, args));
-
+				Document command = new Document("$eval", script.getCode());
+				BasicDBList commandArgs = new BasicDBList();
+				commandArgs.addAll(Arrays.asList(convertScriptArgs(false, args)));
+				command.append("args", commandArgs);
+				return db.runCommand(command).get("retval");
 			}
 		});
 	}
@@ -121,8 +125,8 @@ class DefaultScriptOperations implements ScriptOperations {
 			@Override
 			public Object doInDB(MongoDatabase db) throws MongoException, DataAccessException {
 
-				return db
-						.runCommand(RawBsonDocument.parse(String.format("%s(%s)", scriptName, convertAndJoinScriptArgs(args))));
+				return db.runCommand(new Document("eval", String.format("%s(%s)", scriptName, convertAndJoinScriptArgs(args))))
+						.get("retval");
 			}
 		});
 	}
