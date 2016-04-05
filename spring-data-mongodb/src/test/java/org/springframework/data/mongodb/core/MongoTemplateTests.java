@@ -40,6 +40,7 @@ import java.util.Map;
 
 import org.bson.RawBsonDocument;
 import org.bson.types.ObjectId;
+import org.hamcrest.collection.IsMapContaining;
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
@@ -350,18 +351,17 @@ public class MongoTemplateTests {
 		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP));
 
 		MongoCollection<DBObject> coll = template.getCollection(template.getCollectionName(Person.class));
-		List<DBObject> indexInfo = new ArrayList<DBObject>();
-		MongoCursor<org.bson.Document> cursor = coll.listIndexes().iterator();
+		List<org.bson.Document> indexInfo = new ArrayList<org.bson.Document>();
+		coll.listIndexes().into(indexInfo);
 
 		assertThat(indexInfo.size(), is(2));
-		String indexKey = null;
+		Object indexKey = null;
 		boolean unique = false;
 		boolean dropDupes = false;
-		while (cursor.hasNext()) {
+		for (org.bson.Document ix : indexInfo) {
 
-			org.bson.Document ix = cursor.next();
 			if ("age_-1".equals(ix.get("name"))) {
-				indexKey = ix.get("key").toString();
+				indexKey = ix.get("key");
 				unique = (Boolean) ix.get("unique");
 				if (mongoVersion.isLessThan(TWO_DOT_EIGHT)) {
 					dropDupes = (Boolean) ix.get("dropDups");
@@ -371,7 +371,7 @@ public class MongoTemplateTests {
 				}
 			}
 		}
-		assertThat(indexKey, is("{ \"age\" : -1}"));
+		assertThat(((org.bson.Document) indexKey), IsMapContaining.<String, Object> hasEntry("age", -1));
 		assertThat(unique, is(true));
 
 		List<IndexInfo> indexInfoList = template.indexOps(Person.class).getIndexInfo();

@@ -1220,11 +1220,26 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 				UpdateOptions opts = new UpdateOptions();
 				opts.upsert(upsert);
 
-				if (writeConcernToUse == null) {
-					return collection.updateOne((BasicDBObject) queryObj, (BasicDBObject) updateObj, opts);
+				// TODO hack - split up update and replaces
+				boolean useUpdate = false;
+
+				for (String s : updateObj.keySet()) {
+					if (s.startsWith("$")) {
+						useUpdate = true;
+						break;
+					}
+				}
+
+				collection = writeConcernToUse != null ? collection.withWriteConcern(writeConcernToUse) : collection;
+
+				if (!useUpdate) {
+					return collection.replaceOne((BasicDBObject) queryObj, (BasicDBObject) updateObj, opts);
 				} else {
-					return collection.withWriteConcern(writeConcernToUse).updateOne((BasicDBObject) queryObj,
-							(BasicDBObject) updateObj, opts);
+					if (multi) {
+						return collection.updateMany((BasicDBObject) queryObj, (BasicDBObject) updateObj, opts);
+					} else {
+						return collection.updateOne((BasicDBObject) queryObj, (BasicDBObject) updateObj, opts);
+					}
 				}
 
 				// WriteResult writeResult = writeConcernToUse == null ? collection.update(queryObj, updateObj, upsert, multi)
