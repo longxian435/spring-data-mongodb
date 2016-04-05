@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
@@ -120,6 +121,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MapReduceIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -1475,10 +1477,41 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 		String reduceFunc = replaceWithResourceIfNecessary(reduceFunction);
 		MongoCollection<DBObject> inputCollection = getCollection(inputCollectionName);
 
-		inputCollection.mapReduce(mapFunction, reduceFunction);
+		// MapReduceOp
+		MapReduceIterable<DBObject> result = inputCollection.mapReduce(mapFunction, reduceFunction);
+		if (query != null) {
 
-		return null;
+			if (query.getLimit() > 0) {
+				result.limit(query.getLimit());
+			}
+			if (query.getMeta() != null && query.getMeta().getMaxTimeMsec() != null) {
+				result.maxTime(query.getMeta().getMaxTimeMsec(), TimeUnit.MILLISECONDS);
+			}
+			if (query.getSortObject() != null) {
+				result.sort((BasicDBObject) query.getSortObject());
+			}
 
+			result.filter((BasicDBObject) queryMapper.getMappedObject(query.getQueryObject(), null));
+		}
+
+		if (mapReduceOptions != null) {
+
+			if (!CollectionUtils.isEmpty(mapReduceOptions.getScopeVariables())) {
+				BasicDBObject vars = new BasicDBObject();
+				vars.putAll(mapReduceOptions.getScopeVariables());
+				result.scope(vars);
+			}
+		}
+		List<T> mappedResults = new ArrayList<T>();
+		DbObjectCallback<T> callback = new ReadDbObjectCallback<T>(mongoConverter, entityClass, inputCollectionName);
+
+		for (DBObject dbObject : result) {
+			mappedResults.add(callback.doWith(dbObject));
+		}
+
+		return new MapReduceResults<T>(mappedResults, new BasicDBObject());
+		// return null;
+		//
 		// MapReduceCommand command = new MapReduceCommand(inputCollection, mapFunc, reduceFunc,
 		// mapReduceOptions.getOutputCollection(), mapReduceOptions.getOutputType(),
 		// query == null || query.getQueryObject() == null ? null
