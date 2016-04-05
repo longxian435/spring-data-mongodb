@@ -19,11 +19,13 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.springframework.data.mongodb.core.query.Criteria.*;
 import static org.springframework.data.mongodb.core.query.Query.*;
+import static org.springframework.data.mongodb.gridfs.GridFsCriteria.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bson.BsonObjectId;
 import org.bson.types.ObjectId;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,9 +33,14 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.gridfs.GridFSFile;
 
@@ -70,7 +77,7 @@ public class GridFsTemplateIntegrationTests {
 		GridFSFindIterable result = operations.find(query(where("_id").is(reference)));
 		result.into(files);
 		assertThat(files.size(), is(1));
-		assertEquals(files.get(0).getId().toString(), reference.toString());
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -79,13 +86,15 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void writesMetadataCorrectly() throws IOException {
 
-		fail("TODO");
-		// DBObject metadata = new BasicDBObject("key", "value");
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo.xml", metadata);
-		//
-		// List<GridFSDBFile> result = operations.find(query(whereMetaData("key").is("value")));
-		// assertThat(result.size(), is(1));
-		// assertSame(result.get(0), reference);
+		DBObject metadata = new BasicDBObject("key", "value");
+		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml", metadata);
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query(whereMetaData("key").is("value")));
+		result.into(files);
+
+		assertThat(files.size(), is(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -97,12 +106,14 @@ public class GridFsTemplateIntegrationTests {
 		Metadata metadata = new Metadata();
 		metadata.version = "1.0";
 
-		fail("TODO");
+		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml", metadata);
 
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo.xml", metadata);
-		// List<GridFSDBFile> result = operations.find(query(whereFilename().is("foo.xml")));
-		// assertThat(result.size(), is(1));
-		// assertSame(result.get(0), reference);
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query(whereFilename().is("foo.xml")));
+		result.into(files);
+
+		assertThat(files.size(), is(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -111,15 +122,14 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void findsFilesByResourcePattern() throws IOException {
 
-		fail("TODO");
+		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml");
 
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo.xml");
-		//
-		// GridFsResource[] resources = operations.getResources("*.xml");
-		// assertThat(resources.length, is(1));
-		// assertThat(resources[0].getId(), is(reference.getId()));
-		// assertThat(resources[0].contentLength(), is(reference.getLength()));
-		// assertThat(resources[0].getContentType(), is(reference.getContentType()));
+		GridFsResource[] resources = operations.getResources("*.xml");
+
+		assertThat(resources.length, is(1));
+		assertThat(((BsonObjectId) resources[0].getId()).getValue(), is(reference));
+		assertThat(resources[0].contentLength(), is(resource.contentLength()));
+		// assertThat(resources[0].getContentType(), is(resource.()));
 	}
 
 	/**
@@ -128,13 +138,12 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void findsFilesByResourceLocation() throws IOException {
 
-		fail("TODO");
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo.xml");
-		//
-		// GridFsResource[] resources = operations.getResources("foo.xml");
-		// assertThat(resources.length, is(1));
-		// assertThat(resources[0].getId(), is(reference.getId()));
-		// assertThat(resources[0].contentLength(), is(reference.getLength()));
+		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml");
+
+		GridFsResource[] resources = operations.getResources("foo.xml");
+		assertThat(resources.length, is(1));
+		assertThat(((BsonObjectId) resources[0].getId()).getValue(), is(reference));
+		assertThat(resources[0].contentLength(), is(resource.contentLength()));
 		// assertThat(resources[0].getContentType(), is(reference.getContentType()));
 	}
 
@@ -144,12 +153,14 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void storesContentType() throws IOException {
 
-		fail("TODO");
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo2.xml", "application/xml");
-		//
-		// List<GridFSDBFile> result = operations.find(query(whereContentType().is("application/xml")));
-		// assertThat(result.size(), is(1));
-		// assertSame(result.get(0), reference);
+		ObjectId reference = operations.store(resource.getInputStream(), "foo2.xml", "application/xml");
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query(whereContentType().is("application/xml")));
+		result.into(files);
+
+		assertThat(files.size(), is(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -158,19 +169,20 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void considersSortWhenQueryingFiles() throws IOException {
 
-		fail("TODO");
+		ObjectId second = operations.store(resource.getInputStream(), "foo.xml");
+		ObjectId third = operations.store(resource.getInputStream(), "foobar.xml");
+		ObjectId first = operations.store(resource.getInputStream(), "bar.xml");
 
-		// GridFSFile second = operations.store(resource.getInputStream(), "foo.xml");
-		// GridFSFile third = operations.store(resource.getInputStream(), "foobar.xml");
-		// GridFSFile first = operations.store(resource.getInputStream(), "bar.xml");
-		//
-		// Query query = new Query().with(new Sort(Direction.ASC, "filename"));
-		//
-		// List<GridFSDBFile> result = operations.find(query);
-		// assertThat(result, hasSize(3));
-		// assertSame(result.get(0), first);
-		// assertSame(result.get(1), second);
-		// assertSame(result.get(2), third);
+		Query query = new Query().with(new Sort(Direction.ASC, "filename"));
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query);
+		result.into(files);
+
+		assertThat(files, hasSize(3));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), first);
+		assertEquals(((BsonObjectId) files.get(1).getId()).getValue(), second);
+		assertEquals(((BsonObjectId) files.get(2).getId()).getValue(), third);
 	}
 
 	/**
@@ -179,13 +191,14 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void queryingWithNullQueryReturnsAllFiles() throws IOException {
 
-		fail("TODO");
-		// GridFSFile reference = operations.store(resource.getInputStream(), "foo.xml");
-		//
-		// List<GridFSDBFile> result = operations.find(null);
-		//
-		// assertThat(result, hasSize(1));
-		// assertSame(result.get(0), reference);
+		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml");
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(null);
+		result.into(files);
+
+		assertThat(files, hasSize(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -202,14 +215,15 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void storesAndFindsSimpleDocumentWithMetadataDBObject() throws IOException {
 
-		fail("TODO");
-		// DBObject metadata = new BasicDBObject("key", "value");
-		// GridFSFile reference = operations.store(resource.getInputStream(), metadata);
-		//
-		// List<GridFSDBFile> result = operations.find(query(whereMetaData("key").is("value")));
-		//
-		// assertThat(result.size(), is(1));
-		// assertSame(result.get(0), reference);
+		DBObject metadata = new BasicDBObject("key", "value");
+		ObjectId reference = operations.store(resource.getInputStream(), "foobar", metadata);
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query(whereMetaData("key").is("value")));
+		result.into(files);
+
+		assertThat(files, hasSize(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	/**
@@ -218,15 +232,16 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void storesAndFindsSimpleDocumentWithMetadataObject() throws IOException {
 
-		fail("TODO");
-		// Metadata metadata = new Metadata();
-		// metadata.version = "1.0";
-		// GridFSFile reference = operations.store(resource.getInputStream(), metadata);
-		//
-		// List<GridFSDBFile> result = operations.find(query(whereMetaData("version").is("1.0")));
-		//
-		// assertThat(result.size(), is(1));
-		// assertSame(result.get(0), reference);
+		Metadata metadata = new Metadata();
+		metadata.version = "1.0";
+		ObjectId reference = operations.store(resource.getInputStream(), "foobar", metadata);
+
+		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
+		GridFSFindIterable result = operations.find(query(whereMetaData("version").is("1.0")));
+		result.into(files);
+
+		assertThat(files, hasSize(1));
+		assertEquals(((BsonObjectId) files.get(0).getId()).getValue(), reference);
 	}
 
 	private static void assertSame(GridFSFile left, GridFSFile right) {

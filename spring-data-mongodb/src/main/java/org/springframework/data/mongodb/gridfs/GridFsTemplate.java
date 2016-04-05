@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bson.BsonObjectId;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -162,9 +163,16 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 
 		GridFSUploadOptions opts = new GridFSUploadOptions();
 
-		if (metadata != null) {
-			opts.metadata(new Document(metadata.toMap()));
+		Document mData = new Document();
+		if (StringUtils.hasText(contentType)) {
+			mData.put("type", contentType);
 		}
+
+		if (metadata != null) {
+			mData.putAll(metadata.toMap());
+		}
+
+		opts.metadata(mData);
 
 		return getGridFs().uploadFromStream(filename, content, opts);
 
@@ -191,13 +199,13 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 	public GridFSFindIterable find(Query query) {
 
 		if (query == null) {
-			return getGridFs().find((BasicDBObject) null);
+			return getGridFs().find(new BasicDBObject());
 		}
 
 		DBObject queryObject = getMappedQuery(query.getQueryObject());
-		// DBObject sortObject = getMappedQuery(query.getSortObject());
+		DBObject sortObject = getMappedQuery(query.getSortObject());
 
-		return getGridFs().find((BasicDBObject) queryObject);
+		return getGridFs().find((BasicDBObject) queryObject).sort((BasicDBObject) sortObject);
 	}
 
 	/*
@@ -216,7 +224,7 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 		// getGridFs()..remove(getMappedQuery(query));
 
 		for (GridFSFile x : find(query)) {
-			getGridFs().delete(new ObjectId(x.getId().toString()));
+			getGridFs().delete(((BsonObjectId) x.getId()).getValue());
 		}
 	}
 
