@@ -1479,19 +1479,19 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 
 		// MapReduceOp
 		MapReduceIterable<DBObject> result = inputCollection.mapReduce(mapFunction, reduceFunction);
-		if (query != null) {
+		if (query != null && result != null) {
 
-			if (query.getLimit() > 0) {
-				result.limit(query.getLimit());
+			if (query.getLimit() > 0 && mapReduceOptions.getLimit() == null) {
+				result = result.limit(query.getLimit());
 			}
 			if (query.getMeta() != null && query.getMeta().getMaxTimeMsec() != null) {
-				result.maxTime(query.getMeta().getMaxTimeMsec(), TimeUnit.MILLISECONDS);
+				result = result.maxTime(query.getMeta().getMaxTimeMsec(), TimeUnit.MILLISECONDS);
 			}
 			if (query.getSortObject() != null) {
-				result.sort((BasicDBObject) query.getSortObject());
+				result = result.sort((BasicDBObject) query.getSortObject());
 			}
 
-			result.filter((BasicDBObject) queryMapper.getMappedObject(query.getQueryObject(), null));
+			result = result.filter((BasicDBObject) queryMapper.getMappedObject(query.getQueryObject(), null));
 		}
 
 		if (mapReduceOptions != null) {
@@ -1499,7 +1499,19 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 			if (!CollectionUtils.isEmpty(mapReduceOptions.getScopeVariables())) {
 				BasicDBObject vars = new BasicDBObject();
 				vars.putAll(mapReduceOptions.getScopeVariables());
-				result.scope(vars);
+				result = result.scope(vars);
+			}
+			if (mapReduceOptions.getLimit() != null && mapReduceOptions.getLimit().intValue() > 0) {
+				result = result.limit(mapReduceOptions.getLimit());
+			}
+			if (StringUtils.hasText(mapReduceOptions.getFinalizeFunction())) {
+				result = result.finalizeFunction(mapReduceOptions.getFinalizeFunction());
+			}
+			if (mapReduceOptions.getJavaScriptMode() != null) {
+				result = result.jsMode(mapReduceOptions.getJavaScriptMode());
+			}
+			if (mapReduceOptions.getOutputSharded() != null) {
+				result = result.sharded(mapReduceOptions.getOutputSharded());
 			}
 		}
 		List<T> mappedResults = new ArrayList<T>();
