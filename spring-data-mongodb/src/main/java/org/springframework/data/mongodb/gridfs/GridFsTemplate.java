@@ -175,21 +175,6 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 		opts.metadata(mData);
 
 		return getGridFs().uploadFromStream(filename, content, opts);
-
-		// if (filename != null) {
-		// file.setFilename(filename);
-		// }
-		//
-		// if (metadata != null) {
-		// file.setMetaData(metadata);
-		// }
-		//
-		// if (contentType != null) {
-		// file.setContentType(contentType);
-		// }
-		//
-		// file.save();
-		// return file;
 	}
 
 	/*
@@ -221,7 +206,6 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#delete(org.springframework.data.mongodb.core.query.Query)
 	 */
 	public void delete(Query query) {
-		// getGridFs()..remove(getMappedQuery(query));
 
 		for (GridFSFile x : find(query)) {
 			getGridFs().delete(((BsonObjectId) x.getId()).getValue());
@@ -243,7 +227,7 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 	public GridFsResource getResource(String location) {
 
 		GridFSFile file = findOne(query(whereFilename().is(location)));
-		return file != null ? new GridFsResource(file) : null;
+		return file != null ? new GridFsResource(file, getGridFs().openDownloadStreamByName(location)) : null;
 	}
 
 	/*
@@ -264,7 +248,7 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 			List<GridFsResource> resources = new ArrayList<GridFsResource>();
 
 			for (GridFSFile file : files) {
-				resources.add(new GridFsResource(file));
+				resources.add(new GridFsResource(file, getGridFs().openDownloadStreamByName(file.getFilename())));
 			}
 
 			return resources.toArray(new GridFsResource[resources.size()]);

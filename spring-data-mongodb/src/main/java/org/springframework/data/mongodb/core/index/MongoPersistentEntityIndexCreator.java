@@ -196,8 +196,6 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 				}
 			}
 
-			// opts = indexDefinition.getIndexOptions()
-			// TODO create the options correctly
 			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
 					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
 

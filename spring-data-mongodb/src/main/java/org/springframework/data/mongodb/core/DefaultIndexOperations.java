@@ -121,7 +121,6 @@ public class DefaultIndexOperations implements IndexOperations {
 						ops = ops.weights((BasicDBObject) indexOptions.get("weights"));
 					}
 
-					// TODO: convert the index options here
 					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
 				} else {
 					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys());

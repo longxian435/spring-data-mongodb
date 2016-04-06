@@ -1827,7 +1827,16 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 			public MongoCollection<DBObject> doInDB(MongoDatabase db) throws MongoException, DataAccessException {
 
 				CreateCollectionOptions co = new CreateCollectionOptions();
-				// TOOD: collection options
+
+				if (collectionOptions.containsField("capped")) {
+					co.capped((Boolean) collectionOptions.get("capped"));
+				}
+				if (collectionOptions.containsField("size")) {
+					co.sizeInBytes(((Number) collectionOptions.get("size")).longValue());
+				}
+				if (collectionOptions.containsField("max")) {
+					co.maxDocuments(((Number) collectionOptions.get("max")).longValue());
+				}
 
 				db.createCollection(collectionName, co);
 

@@ -17,6 +17,7 @@ package org.springframework.data.mongodb.gridfs;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -39,9 +40,12 @@ public class GridFsResource extends InputStreamResource {
 	 * @param file must not be {@literal null}.
 	 */
 	public GridFsResource(GridFSFile file) {
+		this(file, new ByteArrayInputStream(new byte[] {}));
+	}
 
-		// TODO ugly hack!
-		super(new ByteArrayInputStream(new byte[] {}));
+	public GridFsResource(GridFSFile file, InputStream inputStream) {
+
+		super(inputStream);
 		this.file = file;
 	}
 
