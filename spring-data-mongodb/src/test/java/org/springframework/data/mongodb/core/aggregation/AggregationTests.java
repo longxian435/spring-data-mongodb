@@ -38,7 +38,6 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -85,7 +84,6 @@ import com.mongodb.util.JSON;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:infrastructure.xml")
-@Ignore("TODO")
 public class AggregationTests {
 
 	private static final String INPUT_COLLECTION = "aggregation_test_collection";
