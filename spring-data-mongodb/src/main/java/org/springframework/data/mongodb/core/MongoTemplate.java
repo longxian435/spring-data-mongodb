@@ -2383,8 +2383,11 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 
 		public DBObject doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
 
-			return collection.findOneAndDelete((BasicDBObject) query, new FindOneAndDeleteOptions());
-			// return collection.findAndModify(query, fields, sort, true, null, false, false);
+			FindOneAndDeleteOptions opts = new FindOneAndDeleteOptions();
+			opts.sort((BasicDBObject) sort);
+			opts.projection((BasicDBObject) fields);
+
+			return collection.findOneAndDelete((BasicDBObject) query, opts);
 		}
 	}
 
