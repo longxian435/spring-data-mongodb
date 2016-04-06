@@ -25,8 +25,8 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.core.IsEqual;
+import org.hamcrest.number.IsCloseTo;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -63,7 +63,6 @@ import com.mongodb.client.model.IndexOptions;
  * @author Thomas Darimont
  */
 @RunWith(MockitoJUnitRunner.class)
-@Ignore("TODO")
 public class MongoPersistentEntityIndexCreatorUnitTests {
 
 	private @Mock MongoDbFactory factory;
@@ -85,7 +84,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		when(factory.getDb()).thenReturn(db);
 		when(db.getCollection(collectionCaptor.capture(), eq(DBObject.class))).thenReturn(collection);
 
-		doNothing().when(collection).createIndex(keysCaptor.capture(), optionsCaptor.capture());
+		when(collection.createIndex(keysCaptor.capture(), optionsCaptor.capture())).thenReturn("OK");
 	}
 
 	@Test
@@ -98,7 +97,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		assertThat(keysCaptor.getValue(), is(notNullValue()));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("fieldname"));
 		assertThat(optionsCaptor.getValue().getName(), is("indexName"));
-		assertThat(optionsCaptor.getValue().isBackground(), nullValue());
+		assertThat(optionsCaptor.getValue().isBackground(), is(false));
 		assertThat(optionsCaptor.getValue().getExpireAfter(TimeUnit.SECONDS), nullValue());
 	}
 
@@ -174,9 +173,11 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		assertThat(keysCaptor.getValue(), equalTo(new BasicDBObjectBuilder().add("company.address.location", "2d").get()));
 
-		fail("TODO");
-		// assertThat(optionsCaptor.getValue(), equalTo(new BasicDBObjectBuilder().add("name", "company.address.location")
-		// .add("min", -180).add("max", 180).add("bits", 26).get()));
+		IndexOptions opts = optionsCaptor.getValue();
+		assertThat(opts.getName(), is(equalTo("company.address.location")));
+		assertThat(opts.getMin(), IsCloseTo.closeTo(-180, 0));
+		assertThat(opts.getMax(), IsCloseTo.closeTo(180, 0));
+		assertThat(opts.getBits(), is(26));
 	}
 
 	/**
@@ -191,8 +192,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		assertThat(keysCaptor.getValue().containsField("name"), is(false));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("lastname"));
 
-		fail("TODO");
-		// assertThat(optionsCaptor.getValue(), is(new BasicDBObjectBuilder().get()));
+		assertThat(optionsCaptor.getValue().getName(), nullValue());
 	}
 
 	/**
@@ -206,7 +206,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture());
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(DBObject.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("wrapper"));
 	}
 
@@ -221,7 +221,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture());
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(DBObject.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("indexedDocumentWrapper"));
 	}
 

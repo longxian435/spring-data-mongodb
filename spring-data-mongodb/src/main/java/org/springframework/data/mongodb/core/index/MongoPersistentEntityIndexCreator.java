@@ -196,7 +196,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 				}
 			}
 
-			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
+			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection(), DBObject.class)
 					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
 
 		} catch (MongoException ex) {
