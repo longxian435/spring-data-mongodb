@@ -2515,18 +2515,18 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware {
 					DBObject sortDbo = type != null ? getMappedSortObject(query, type) : query.getSortObject();
 					cursorToUse = cursorToUse.sort((BasicDBObject) sortDbo);
 				}
-				if (StringUtils.hasText(query.getHint())) {
 
-					// TODO
-					// cursorToUse = cursorToUse..hint(query.getHint());
+				BasicDBObject meta = new BasicDBObject();
+				if (StringUtils.hasText(query.getHint())) {
+					meta.put("$hint", query.getHint());
 				}
 				if (query.getMeta().hasValues()) {
 					for (Entry<String, Object> entry : query.getMeta().values()) {
-
-						// TODO
-						// cursorToUse = cursorToUse..addSpecial(entry.getKey(), entry.getValue());
+						meta.put(entry.getKey(), entry.getValue());
 					}
 				}
+
+				cursorToUse = cursorToUse.modifiers(meta);
 
 			} catch (RuntimeException e) {
 				throw potentiallyConvertRuntimeException(e, exceptionTranslator);
