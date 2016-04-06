@@ -30,9 +30,11 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.util.ClassUtils;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 
 /**
  * @author Thomas Risberg
@@ -81,8 +83,8 @@ public class MongoChangeSetPersister implements ChangeSetPersister<Object> {
 			log.debug("Loading MongoDB data for {}", dbk);
 		}
 		mongoTemplate.execute(collName, new CollectionCallback<Object>() {
-			public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-				for (DBObject dbo : collection.find(dbk)) {
+			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+				for (DBObject dbo : collection.find((BasicDBObject) dbk)) {
 					String key = (String) dbo.get(ENTITY_FIELD_NAME);
 					if (log.isDebugEnabled()) {
 						log.debug("Processing key: {}", key);
@@ -147,18 +149,22 @@ public class MongoChangeSetPersister implements ChangeSetPersister<Object> {
 				dbQuery.put(ENTITY_ID, getPersistentId(entity, cs));
 				dbQuery.put(ENTITY_CLASS, entity.getClass().getName());
 				dbQuery.put(ENTITY_FIELD_NAME, key);
-				DBObject dbId = mongoTemplate.execute(collName, new CollectionCallback<DBObject>() {
-					public DBObject doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-						return collection.findOne(dbQuery);
+				final DBObject dbId = mongoTemplate.execute(collName, new CollectionCallback<DBObject>() {
+					public DBObject doInCollection(MongoCollection<DBObject> collection)
+							throws MongoException, DataAccessException {
+						DBObject id = collection.find((BasicDBObject) dbQuery).first();
+						return id;
 					}
 				});
+
 				if (value == null) {
 					if (log.isDebugEnabled()) {
 						log.debug("Flush: removing: {}", dbQuery);
 					}
 					mongoTemplate.execute(collName, new CollectionCallback<Object>() {
-						public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-							collection.remove(dbQuery);
+						public Object doInCollection(MongoCollection<DBObject> collection)
+								throws MongoException, DataAccessException {
+							DeleteResult dr = collection.deleteMany((BasicDBObject) dbQuery);
 							return null;
 						}
 					});
@@ -174,8 +180,18 @@ public class MongoChangeSetPersister implements ChangeSetPersister<Object> {
 						dbDoc.put("_id", dbId.get("_id"));
 					}
 					mongoTemplate.execute(collName, new CollectionCallback<Object>() {
-						public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
-							collection.save(dbDoc);
+						public Object doInCollection(MongoCollection<DBObject> collection)
+								throws MongoException, DataAccessException {
+
+							if (dbId != null) {
+								collection.replaceOne(Filters.eq("_id", dbId.get("_id")), dbDoc);
+							} else {
+
+								if (dbDoc.containsField("_id") && dbDoc.get("_id") == null) {
+									dbDoc.removeField("_id");
+								}
+								collection.insertOne(dbDoc);
+							}
 							return null;
 						}
 					});
