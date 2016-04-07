@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +35,6 @@ import org.springframework.data.util.Pair;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
@@ -54,13 +53,13 @@ public class DefaultBulkOperationsIntegrationTests {
 
 	@Autowired MongoOperations operations;
 
-	MongoCollection<DBObject> collection;
+	MongoCollection<Document> collection;
 
 	@Before
 	public void setUp() {
 
 		this.collection = this.operations.getCollection(COLLECTION_NAME);
-		this.collection.deleteMany(new BasicDBObject());
+		this.collection.deleteMany(new Document());
 	}
 
 	/**
@@ -304,7 +303,7 @@ public class DefaultBulkOperationsIntegrationTests {
 
 	private void insertSomeDocuments() {
 
-		final MongoCollection<DBObject> coll = operations.getCollection(COLLECTION_NAME);
+		final MongoCollection<Document> coll = operations.getCollection(COLLECTION_NAME);
 
 		coll.insertOne(rawDoc("1", "value1"));
 		coll.insertOne(rawDoc("2", "value1"));
@@ -336,7 +335,7 @@ public class DefaultBulkOperationsIntegrationTests {
 		return new Update().set(field, value);
 	}
 
-	private static DBObject rawDoc(String id, String value) {
-		return new BasicDBObject("_id", id).append("value", value);
+	private static Document rawDoc(String id, String value) {
+		return new Document("_id", id).append("value", value);
 	}
 }

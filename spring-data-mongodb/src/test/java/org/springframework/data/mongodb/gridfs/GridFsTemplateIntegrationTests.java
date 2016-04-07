@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.BsonObjectId;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,8 +40,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.gridfs.GridFSFile;
 
@@ -86,7 +85,7 @@ public class GridFsTemplateIntegrationTests {
 	@Test
 	public void writesMetadataCorrectly() throws IOException {
 
-		DBObject metadata = new BasicDBObject("key", "value");
+		Document metadata = new Document("key", "value");
 		ObjectId reference = operations.store(resource.getInputStream(), "foo.xml", metadata);
 
 		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();
@@ -213,9 +212,9 @@ public class GridFsTemplateIntegrationTests {
 	 * @see DATAMONGO-809
 	 */
 	@Test
-	public void storesAndFindsSimpleDocumentWithMetadataDBObject() throws IOException {
+	public void storesAndFindsSimpleDocumentWithMetadataDocument() throws IOException {
 
-		DBObject metadata = new BasicDBObject("key", "value");
+		Document metadata = new Document("key", "value");
 		ObjectId reference = operations.store(resource.getInputStream(), "foobar", metadata);
 
 		List<com.mongodb.client.gridfs.model.GridFSFile> files = new ArrayList<com.mongodb.client.gridfs.model.GridFSFile>();

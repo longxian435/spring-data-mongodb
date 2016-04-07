@@ -40,7 +40,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 
@@ -111,12 +110,13 @@ public class IndexingIntegrationTests {
 	private boolean hasIndex(final String indexName, Class<?> entityType) {
 
 		return operations.execute(entityType, new CollectionCallback<Boolean>() {
-			public Boolean doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Boolean doInCollection(MongoCollection<org.bson.Document> collection)
+					throws MongoException, DataAccessException {
 
-				List<DBObject> indexes = new ArrayList<DBObject>();
-				collection.listIndexes(DBObject.class).into(indexes);
+				List<org.bson.Document> indexes = new ArrayList<org.bson.Document>();
+				collection.listIndexes(org.bson.Document.class).into(indexes);
 
-				for (DBObject indexInfo : indexes) {
+				for (org.bson.Document indexInfo : indexes) {
 					if (indexName.equals(indexInfo.get("name"))) {
 						return true;
 					}

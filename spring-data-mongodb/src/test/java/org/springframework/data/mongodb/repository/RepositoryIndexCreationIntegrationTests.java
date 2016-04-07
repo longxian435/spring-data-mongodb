@@ -32,7 +32,7 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.DBObject;
+import org.bson.Document;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 
@@ -53,12 +53,12 @@ public class RepositoryIndexCreationIntegrationTests {
 	public void tearDown() {
 		operations.execute(Person.class, new CollectionCallback<Void>() {
 
-			public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Void doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
-				List<DBObject> indexes = new ArrayList<DBObject>();
-				collection.listIndexes(DBObject.class).into(indexes);
+				List<Document> indexes = new ArrayList<Document>();
+				collection.listIndexes(Document.class).into(indexes);
 
-				for (DBObject index : indexes) {
+				for (Document index : indexes) {
 					String indexName = index.get("name").toString();
 					if (indexName.startsWith("find")) {
 						collection.dropIndex(indexName);

@@ -34,7 +34,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.mongodb.DB;
-import com.mongodb.DBObject;
+import org.bson.Document;
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
@@ -80,12 +80,12 @@ public class GeoIndexedTests {
 		template.insert(geo);
 
 		boolean hasIndex = template.execute("geolocation", new CollectionCallback<Boolean>() {
-			public Boolean doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Boolean doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
-				List<DBObject> indexes = new ArrayList<DBObject>();
-				collection.listIndexes(DBObject.class).into(indexes);
+				List<Document> indexes = new ArrayList<Document>();
+				collection.listIndexes(Document.class).into(indexes);
 
-				for (DBObject dbo : indexes) {
+				for (Document dbo : indexes) {
 					if ("location".equals(dbo.get("name"))) {
 						return true;
 					}

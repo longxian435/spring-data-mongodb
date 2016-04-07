@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.bson.Document;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.mongodb.core.query.Query;
@@ -26,9 +27,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.util.Pair;
 import org.springframework.util.Assert;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteException;
-import com.mongodb.DBObject;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -59,7 +58,7 @@ class DefaultBulkOperations implements BulkOperations {
 
 	private BulkWriteOptions bulkOptions;
 
-	List<WriteModel<DBObject>> models = new ArrayList<WriteModel<DBObject>>();
+	List<WriteModel<Document>> models = new ArrayList<WriteModel<Document>>();
 
 	/**
 	 * Creates a new {@link DefaultBulkOperations} for the given {@link MongoOperations}, {@link BulkMode}, collection
@@ -125,7 +124,7 @@ class DefaultBulkOperations implements BulkOperations {
 
 		Assert.notNull(document, "Document must not be null!");
 
-		models.add(new InsertOneModel<DBObject>((DBObject) mongoOperations.getConverter().convertToMongoType(document)));
+		models.add(new InsertOneModel<Document>((Document) mongoOperations.getConverter().convertToMongoType(document)));
 		return this;
 	}
 
@@ -237,7 +236,7 @@ class DefaultBulkOperations implements BulkOperations {
 
 		Assert.notNull(query, "Query must not be null!");
 
-		models.add(new DeleteManyModel<DBObject>((BasicDBObject) query.getQueryObject()));
+		models.add(new DeleteManyModel<Document>(query.getQueryObject()));
 		// bulk.find(query.getQueryObject()).remove();
 
 		return this;
@@ -268,7 +267,7 @@ class DefaultBulkOperations implements BulkOperations {
 
 		try {
 
-			MongoCollection<DBObject> collection = mongoOperations.getCollection(collectionName);
+			MongoCollection<Document> collection = mongoOperations.getCollection(collectionName);
 			if (defaultWriteConcern != null) {
 				collection = collection.withWriteConcern(defaultWriteConcern);
 			}
@@ -303,11 +302,9 @@ class DefaultBulkOperations implements BulkOperations {
 		options.upsert(upsert);
 
 		if (multi) {
-			models.add(new UpdateManyModel<DBObject>((BasicDBObject) query.getQueryObject(),
-					(BasicDBObject) update.getUpdateObject(), options));
+			models.add(new UpdateManyModel<Document>(query.getQueryObject(), update.getUpdateObject(), options));
 		} else {
-			models.add(new UpdateOneModel<DBObject>((BasicDBObject) query.getQueryObject(),
-					(BasicDBObject) update.getUpdateObject(), options));
+			models.add(new UpdateOneModel<Document>(query.getQueryObject(), update.getUpdateObject(), options));
 		}
 		return this;
 	}

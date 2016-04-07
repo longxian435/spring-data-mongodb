@@ -23,6 +23,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.*;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,8 +40,6 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.client.MongoCollection;
 
@@ -93,27 +92,27 @@ public class GroupByTests {
 	@Test
 	public void singleKeyCreation() {
 
-		DBObject gc = new GroupBy("a").getGroupByObject();
+		Document gc = new GroupBy("a").getGroupByObject();
 
-		assertThat(gc.toString(), is("{ \"key\" : { \"a\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }"));
+		assertThat(gc, is(Document.parse("{ \"key\" : { \"a\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }")));
 	}
 
 	@Test
 	public void multipleKeyCreation() {
 
-		DBObject gc = GroupBy.key("a", "b").getGroupByObject();
+		Document gc = GroupBy.key("a", "b").getGroupByObject();
 
-		assertThat(gc.toString(),
-				is("{ \"key\" : { \"a\" : 1 , \"b\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }"));
+		assertThat(gc,
+				is(Document.parse("{ \"key\" : { \"a\" : 1 , \"b\" : 1} , \"$reduce\" :  null  , \"initial\" :  null }")));
 	}
 
 	@Test
 	public void keyFunctionCreation() {
 
-		DBObject gc = GroupBy.keyFunction("classpath:keyFunction.js").getGroupByObject();
+		Document gc = GroupBy.keyFunction("classpath:keyFunction.js").getGroupByObject();
 
-		assertThat(gc.toString(),
-				is("{ \"$keyf\" : \"classpath:keyFunction.js\" , \"$reduce\" :  null  , \"initial\" :  null }"));
+		assertThat(gc, is(
+				Document.parse("{ \"$keyf\" : \"classpath:keyFunction.js\" , \"$reduce\" :  null  , \"initial\" :  null }")));
 	}
 
 	@Test
@@ -121,7 +120,7 @@ public class GroupByTests {
 
 		createGroupByData();
 		GroupByResults<XObject> results = mongoTemplate.group("group_test_collection", GroupBy.key("x")
-				.initialDocument(new BasicDBObject("count", 0)).reduceFunction("function(doc, prev) { prev.count += 1 }"),
+				.initialDocument(new Document("count", 0)).reduceFunction("function(doc, prev) { prev.count += 1 }"),
 				XObject.class);
 
 		assertMapReduceResults(results);
@@ -186,13 +185,13 @@ public class GroupByTests {
 
 	private void createGroupByData() {
 
-		MongoCollection<DBObject> c = mongoTemplate.getDb().getCollection("group_test_collection", DBObject.class);
+		MongoCollection<Document> c = mongoTemplate.getDb().getCollection("group_test_collection", Document.class);
 
-		c.insertOne(new BasicDBObject("x", 1));
-		c.insertOne(new BasicDBObject("x", 1));
-		c.insertOne(new BasicDBObject("x", 2));
-		c.insertOne(new BasicDBObject("x", 3));
-		c.insertOne(new BasicDBObject("x", 3));
-		c.insertOne(new BasicDBObject("x", 3));
+		c.insertOne(new Document("x", 1));
+		c.insertOne(new Document("x", 1));
+		c.insertOne(new Document("x", 2));
+		c.insertOne(new Document("x", 3));
+		c.insertOne(new Document("x", 3));
+		c.insertOne(new Document("x", 3));
 	}
 }

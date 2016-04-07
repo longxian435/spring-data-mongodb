@@ -15,7 +15,7 @@
  */
 package org.springframework.data.mongodb.core.aggregation;
 
-import com.mongodb.DBObject;
+import org.bson.Document;
 
 /**
  * An {@link AggregationExpression} can be used with field expressions in aggregation pipeline stages like
@@ -27,11 +27,11 @@ import com.mongodb.DBObject;
 interface AggregationExpression {
 
 	/**
-	 * Turns the {@link AggregationExpression} into a {@link DBObject} within the given
+	 * Turns the {@link AggregationExpression} into a {@link Document} within the given
 	 * {@link AggregationOperationContext}.
 	 * 
 	 * @param context
 	 * @return
 	 */
-	DBObject toDbObject(AggregationOperationContext context);
+	Document toDbObject(AggregationOperationContext context);
 }

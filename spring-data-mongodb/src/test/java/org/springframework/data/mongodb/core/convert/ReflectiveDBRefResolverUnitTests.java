@@ -23,6 +23,7 @@ import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.data.mongodb.util.MongoClientVersion.*;
 
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,8 +31,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.data.mongodb.MongoDbFactory;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.DBRef;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -48,8 +47,8 @@ public class ReflectiveDBRefResolverUnitTests {
 	@Mock MongoDbFactory dbFactoryMock;
 	@Mock DBRef dbRefMock;
 	@Mock MongoDatabase dbMock;
-	@Mock MongoCollection<DBObject> collectionMock;
-	@Mock FindIterable<DBObject> fi;
+	@Mock MongoCollection<Document> collectionMock;
+	@Mock FindIterable<Document> fi;
 
 	@Before
 	public void setUp() {
@@ -57,9 +56,9 @@ public class ReflectiveDBRefResolverUnitTests {
 		when(dbRefMock.getCollectionName()).thenReturn("collection-1");
 		when(dbRefMock.getId()).thenReturn("id-1");
 		when(dbFactoryMock.getDb()).thenReturn(dbMock);
-		when(dbMock.getCollection(eq("collection-1"), eq(DBObject.class))).thenReturn(collectionMock);
-		when(collectionMock.find(any(BasicDBObject.class))).thenReturn(fi);
-		when(fi.first()).thenReturn(new BasicDBObject("_id", "id-1"));
+		when(dbMock.getCollection(eq("collection-1"), eq(Document.class))).thenReturn(collectionMock);
+		when(collectionMock.find(any(org.bson.Document.class))).thenReturn(fi);
+		when(fi.first()).thenReturn(new Document("_id", "id-1"));
 	}
 
 	/**

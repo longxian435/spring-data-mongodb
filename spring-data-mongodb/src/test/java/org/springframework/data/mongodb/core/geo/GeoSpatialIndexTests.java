@@ -37,7 +37,6 @@ import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
@@ -138,15 +137,16 @@ public class GeoSpatialIndexTests extends AbstractIntegrationTests {
 		return template.execute(entityType, new CollectionCallback<Boolean>() {
 
 			@SuppressWarnings("unchecked")
-			public Boolean doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Boolean doInCollection(MongoCollection<org.bson.Document> collection)
+					throws MongoException, DataAccessException {
 
-				List<DBObject> indexes = new ArrayList<DBObject>();
-				collection.listIndexes(DBObject.class).into(indexes);
+				List<org.bson.Document> indexes = new ArrayList<org.bson.Document>();
+				collection.listIndexes(org.bson.Document.class).into(indexes);
 
-				for (DBObject indexInfo : indexes) {
+				for (org.bson.Document indexInfo : indexes) {
 
-					DBObject keys = (DBObject) indexInfo.get("key");
-					Map<String, Object> keysMap = keys.toMap();
+					org.bson.Document keys = (org.bson.Document) indexInfo.get("key");
+					Map<String, Object> keysMap = keys;
 
 					for (String key : keysMap.keySet()) {
 						Object indexType = keys.get(key);

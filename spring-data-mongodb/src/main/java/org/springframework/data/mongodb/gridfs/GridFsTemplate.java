@@ -33,8 +33,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
@@ -106,10 +104,10 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, com.mongodb.DBObject)
+	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, com.mongodb.Document)
 	 */
 	@Override
-	public ObjectId store(InputStream content, DBObject metadata) {
+	public ObjectId store(InputStream content, Document metadata) {
 		return store(content, null, metadata);
 	}
 
@@ -135,10 +133,10 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 	 */
 	public ObjectId store(InputStream content, String filename, String contentType, Object metadata) {
 
-		DBObject dbObject = null;
+		Document dbObject = null;
 
 		if (metadata != null) {
-			dbObject = new BasicDBObject();
+			dbObject = new Document();
 			converter.write(metadata, dbObject);
 		}
 
@@ -147,17 +145,17 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, java.lang.String, com.mongodb.DBObject)
+	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, java.lang.String, com.mongodb.Document)
 	 */
-	public ObjectId store(InputStream content, String filename, DBObject metadata) {
+	public ObjectId store(InputStream content, String filename, Document metadata) {
 		return this.store(content, filename, null, metadata);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, java.lang.String, com.mongodb.DBObject)
+	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#store(java.io.InputStream, java.lang.String, com.mongodb.Document)
 	 */
-	public ObjectId store(InputStream content, String filename, String contentType, DBObject metadata) {
+	public ObjectId store(InputStream content, String filename, String contentType, Document metadata) {
 
 		Assert.notNull(content);
 
@@ -169,7 +167,7 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 		}
 
 		if (metadata != null) {
-			mData.putAll(metadata.toMap());
+			mData.putAll(metadata);
 		}
 
 		opts.metadata(mData);
@@ -179,23 +177,23 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#find(com.mongodb.DBObject)
+	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#find(com.mongodb.Document)
 	 */
 	public GridFSFindIterable find(Query query) {
 
 		if (query == null) {
-			return getGridFs().find(new BasicDBObject());
+			return getGridFs().find(new Document());
 		}
 
-		DBObject queryObject = getMappedQuery(query.getQueryObject());
-		DBObject sortObject = getMappedQuery(query.getSortObject());
+		Document queryObject = getMappedQuery(query.getQueryObject());
+		Document sortObject = getMappedQuery(query.getSortObject());
 
-		return getGridFs().find((BasicDBObject) queryObject).sort((BasicDBObject) sortObject);
+		return getGridFs().find(queryObject).sort(sortObject);
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#findOne(com.mongodb.DBObject)
+	 * @see org.springframework.data.mongodb.gridfs.GridFsOperations#findOne(com.mongodb.Document)
 	 */
 	public GridFSFile findOne(Query query) {
 		return find(query).first();
@@ -257,11 +255,11 @@ public class GridFsTemplate implements GridFsOperations, ResourcePatternResolver
 		return new GridFsResource[] { getResource(locationPattern) };
 	}
 
-	private DBObject getMappedQuery(Query query) {
+	private Document getMappedQuery(Query query) {
 		return query == null ? new Query().getQueryObject() : getMappedQuery(query.getQueryObject());
 	}
 
-	private DBObject getMappedQuery(DBObject query) {
+	private Document getMappedQuery(Document query) {
 		return query == null ? null : queryMapper.getMappedObject(query, null);
 	}
 

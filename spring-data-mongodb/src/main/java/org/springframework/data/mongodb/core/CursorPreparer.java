@@ -15,8 +15,9 @@
  */
 package org.springframework.data.mongodb.core;
 
+import org.bson.Document;
+
 import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 
 /**
@@ -31,5 +32,5 @@ interface CursorPreparer {
 	 * 
 	 * @param cursor
 	 */
-	FindIterable<DBObject> prepare(FindIterable<DBObject> cursor);
+	FindIterable<Document> prepare(FindIterable<Document> cursor);
 }

@@ -35,8 +35,6 @@ import org.springframework.data.mongodb.util.MongoDbErrorCodes;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.IndexOptions;
@@ -147,46 +145,46 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 			if (indexDefinition.getIndexOptions() != null) {
 
-				DBObject indexOptions = indexDefinition.getIndexOptions();
+				org.bson.Document indexOptions = indexDefinition.getIndexOptions();
 
-				if (indexOptions.containsField("name")) {
+				if (indexOptions.containsKey("name")) {
 					ops = ops.name(indexOptions.get("name").toString());
 				}
-				if (indexOptions.containsField("unique")) {
+				if (indexOptions.containsKey("unique")) {
 					ops = ops.unique((Boolean) indexOptions.get("unique"));
 				}
 				// if(indexOptions.containsField("dropDuplicates")) {
 				// ops = ops.((boolean)indexOptions.get("dropDuplicates"));
 				// }
-				if (indexOptions.containsField("sparse")) {
+				if (indexOptions.containsKey("sparse")) {
 					ops = ops.sparse((Boolean) indexOptions.get("sparse"));
 				}
-				if (indexOptions.containsField("background")) {
+				if (indexOptions.containsKey("background")) {
 					ops = ops.background((Boolean) indexOptions.get("background"));
 				}
-				if (indexOptions.containsField("expireAfterSeconds")) {
+				if (indexOptions.containsKey("expireAfterSeconds")) {
 					ops = ops.expireAfter((Long) indexOptions.get("expireAfterSeconds"), TimeUnit.SECONDS);
 				}
-				if (indexOptions.containsField("min")) {
+				if (indexOptions.containsKey("min")) {
 					ops = ops.min(((Number) indexOptions.get("min")).doubleValue());
 				}
-				if (indexOptions.containsField("max")) {
+				if (indexOptions.containsKey("max")) {
 					ops = ops.max(((Number) indexOptions.get("max")).doubleValue());
 				}
-				if (indexOptions.containsField("bits")) {
+				if (indexOptions.containsKey("bits")) {
 					ops = ops.bits((Integer) indexOptions.get("bits"));
 				}
-				if (indexOptions.containsField("bucketSize")) {
+				if (indexOptions.containsKey("bucketSize")) {
 					ops = ops.bucketSize(((Number) indexOptions.get("bucketSize")).doubleValue());
 				}
-				if (indexOptions.containsField("default_language")) {
+				if (indexOptions.containsKey("default_language")) {
 					ops = ops.defaultLanguage(indexOptions.get("default_language").toString());
 				}
-				if (indexOptions.containsField("language_override")) {
+				if (indexOptions.containsKey("language_override")) {
 					ops = ops.languageOverride(indexOptions.get("language_override").toString());
 				}
-				if (indexOptions.containsField("weights")) {
-					ops = ops.weights((BasicDBObject) indexOptions.get("weights"));
+				if (indexOptions.containsKey("weights")) {
+					ops = ops.weights((org.bson.Document) indexOptions.get("weights"));
 				}
 
 				for (String key : indexOptions.keySet()) {
@@ -196,14 +194,14 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 				}
 			}
 
-			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection(), DBObject.class)
-					.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
+			mongoDbFactory.getDb().getCollection(indexDefinition.getCollection(), Document.class)
+					.createIndex(indexDefinition.getIndexKeys(), ops);
 
 		} catch (MongoException ex) {
 
 			if (MongoDbErrorCodes.isDataIntegrityViolationCode(ex.getCode())) {
 
-				DBObject existingIndex = fetchIndexInformation(indexDefinition);
+				org.bson.Document existingIndex = fetchIndexInformation(indexDefinition);
 				String message = "Cannot create index for '%s' in collection '%s' with keys '%s' and options '%s'.";
 
 				if (existingIndex != null) {
@@ -232,7 +230,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 		return this.mappingContext.equals(context);
 	}
 
-	private DBObject fetchIndexInformation(IndexDefinitionHolder indexDefinition) {
+	private org.bson.Document fetchIndexInformation(IndexDefinitionHolder indexDefinition) {
 
 		if (indexDefinition == null) {
 			return null;
@@ -242,12 +240,12 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 			Object indexNameToLookUp = indexDefinition.getIndexOptions().get("name");
 
-			MongoCursor<DBObject> cursor = mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
-					.listIndexes(DBObject.class).iterator();
+			MongoCursor<org.bson.Document> cursor = mongoDbFactory.getDb().getCollection(indexDefinition.getCollection())
+					.listIndexes(org.bson.Document.class).iterator();
 
 			while (cursor.hasNext()) {
 
-				DBObject index = cursor.next();
+				org.bson.Document index = cursor.next();
 				if (ObjectUtils.nullSafeEquals(indexNameToLookUp, index.get("name"))) {
 					return index;
 				}

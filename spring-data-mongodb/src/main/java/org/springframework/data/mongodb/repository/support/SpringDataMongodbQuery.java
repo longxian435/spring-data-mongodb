@@ -19,6 +19,7 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import com.google.common.base.Function;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.querydsl.mongodb.AbstractMongodbQuery;
@@ -54,8 +55,12 @@ class SpringDataMongodbQuery<T> extends AbstractMongodbQuery<T, SpringDataMongod
 
 		super(((MongoTemplate) operations).getMongoDbFactory().getLegacyDb().getCollection(collectionName),
 				new Function<DBObject, T>() {
+
+					@Override
 					public T apply(DBObject input) {
-						return operations.getConverter().read(type, input);
+
+						System.out.println(input.toString());
+						return operations.getConverter().read(type, (BasicDBObject) input);
 					}
 				}, new SpringDataMongodbSerializer(operations.getConverter()));
 
@@ -68,6 +73,7 @@ class SpringDataMongodbQuery<T> extends AbstractMongodbQuery<T, SpringDataMongod
 	 */
 	@Override
 	protected DBCollection getCollection(Class<?> type) {
-		return ((MongoTemplate) operations).getMongo().getDB("foo").getCollection(operations.getCollectionName(type));
+		return ((MongoTemplate) operations).getMongoDbFactory().getLegacyDb()
+				.getCollection(operations.getCollectionName(type));
 	}
 }

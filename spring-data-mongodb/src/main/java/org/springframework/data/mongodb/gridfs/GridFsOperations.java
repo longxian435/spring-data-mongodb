@@ -17,12 +17,12 @@ package org.springframework.data.mongodb.gridfs;
 
 import java.io.InputStream;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.Query;
 
-import com.mongodb.DBObject;
 import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.gridfs.GridFSFile;
 
@@ -61,7 +61,7 @@ public interface GridFsOperations extends ResourcePatternResolver {
 	 * @param metadata can be {@literal null}.
 	 * @return the {@link GridFSFile} just created
 	 */
-	ObjectId store(InputStream content, DBObject metadata);
+	ObjectId store(InputStream content, Document metadata);
 
 	/**
 	 * Stores the given content into a file with the given name and content type.
@@ -104,7 +104,7 @@ public interface GridFsOperations extends ResourcePatternResolver {
 	 * @param metadata can be {@literal null}.
 	 * @return the {@link GridFSFile} just created
 	 */
-	ObjectId store(InputStream content, String filename, DBObject metadata);
+	ObjectId store(InputStream content, String filename, Document metadata);
 
 	/**
 	 * Stores the given content into a file with the given name and content type using the given metadata.
@@ -115,7 +115,7 @@ public interface GridFsOperations extends ResourcePatternResolver {
 	 * @param metadata can be {@literal null}.
 	 * @return the {@link GridFSFile} just created
 	 */
-	ObjectId store(InputStream content, String filename, String contentType, DBObject metadata);
+	ObjectId store(InputStream content, String filename, String contentType, Document metadata);
 
 	/**
 	 * Returns all files matching the given query. Note, that currently {@link Sort} criterias defined at the

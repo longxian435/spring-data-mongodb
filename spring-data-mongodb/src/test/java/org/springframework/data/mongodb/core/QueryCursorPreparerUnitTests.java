@@ -15,14 +15,20 @@
  */
 package org.springframework.data.mongodb.core;
 
+import static org.hamcrest.core.IsEqual.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.data.mongodb.core.query.Criteria.*;
 import static org.springframework.data.mongodb.core.query.Query.*;
 
 import java.util.concurrent.TimeUnit;
 
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.data.mongodb.MongoDbFactory;
@@ -30,7 +36,6 @@ import org.springframework.data.mongodb.core.MongoTemplate.QueryCursorPreparer;
 import org.springframework.data.mongodb.core.query.Meta;
 import org.springframework.data.mongodb.core.query.Query;
 
-import com.mongodb.DBObject;
 import com.mongodb.client.FindIterable;
 
 /**
@@ -39,18 +44,20 @@ import com.mongodb.client.FindIterable;
  * @author Oliver Gierke
  * @author Christoph Strobl
  */
-// TODO
 @RunWith(MockitoJUnitRunner.class)
 public class QueryCursorPreparerUnitTests {
 
 	@Mock MongoDbFactory factory;
-	@Mock FindIterable<DBObject> cursor;
+	@Mock FindIterable<Document> cursor;
 
-	@Mock FindIterable<DBObject> cursorToUse;
+	@Mock FindIterable<Document> cursorToUse;
 
 	@Before
 	public void setUp() {
-		// when(cursor.copy()).thenReturn(cursorToUse);
+		when(cursor.batchSize(anyInt())).thenReturn(cursor);
+		when(cursor.filter(any(Document.class))).thenReturn(cursor);
+		when(cursor.limit(anyInt())).thenReturn(cursor);
+		when(cursor.modifiers(any(Document.class))).thenReturn(cursor);
 	}
 
 	/**
@@ -63,7 +70,9 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursorToUse).hint("hint");
+		ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+		verify(cursor).modifiers(captor.capture());
+		assertThat(captor.getValue(), equalTo(new Document("$hint", "hint")));
 	}
 
 	/**
@@ -77,8 +86,7 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursor, never()).copy();
-		// verify(cursorToUse, never()).addSpecial(any(String.class), anyObject());
+		verify(cursorToUse, never()).modifiers(any(Document.class));
 	}
 
 	/**
@@ -91,7 +99,9 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursorToUse).addSpecial(eq("$maxScan"), eq(100L));
+		ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+		verify(cursor).modifiers(captor.capture());
+		assertThat(captor.getValue(), equalTo(new Document("$maxScan", 100L)));
 	}
 
 	/**
@@ -104,7 +114,9 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursorToUse).addSpecial(eq("$maxTimeMS"), eq(1000L));
+		ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+		verify(cursor).modifiers(captor.capture());
+		assertThat(captor.getValue(), equalTo(new Document("$maxTimeMS", 1000L)));
 	}
 
 	/**
@@ -117,7 +129,9 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursorToUse).addSpecial(eq("$comment"), eq("spring data"));
+		ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+		verify(cursor).modifiers(captor.capture());
+		assertThat(captor.getValue(), equalTo(new Document("$comment", "spring data")));
 	}
 
 	/**
@@ -130,10 +144,12 @@ public class QueryCursorPreparerUnitTests {
 
 		pepare(query);
 
-		// verify(cursorToUse).addSpecial(eq("$snapshot"), eq(true));
+		ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+		verify(cursor).modifiers(captor.capture());
+		assertThat(captor.getValue(), equalTo(new Document("$snapshot", true)));
 	}
 
-	private FindIterable<DBObject> pepare(Query query) {
+	private FindIterable<Document> pepare(Query query) {
 
 		CursorPreparer preparer = new MongoTemplate(factory).new QueryCursorPreparer(query, null);
 		return preparer.prepare(cursor);

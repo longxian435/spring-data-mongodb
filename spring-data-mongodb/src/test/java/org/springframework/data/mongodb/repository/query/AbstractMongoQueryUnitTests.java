@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -57,8 +58,6 @@ import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.projection.SpelAwareProxyProjectionFactory;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 
-import com.mongodb.BasicDBObjectBuilder;
-import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
 import com.mongodb.client.result.DeleteResult;
 
@@ -273,7 +272,7 @@ public class AbstractMongoQueryUnitTests {
 
 		verify(mongoOperationsMock, times(2)).find(captor.capture(), eq(Person.class), eq("persons"));
 
-		DBObject expectedSortObject = new BasicDBObjectBuilder().add("bar", -1).get();
+		Document expectedSortObject = new Document().append("bar", -1);
 		assertThat(captor.getAllValues().get(0).getSortObject(), is(expectedSortObject));
 		assertThat(captor.getAllValues().get(1).getSortObject(), is(expectedSortObject));
 	}

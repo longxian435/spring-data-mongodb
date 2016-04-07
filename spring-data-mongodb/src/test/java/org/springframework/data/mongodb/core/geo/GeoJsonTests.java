@@ -23,6 +23,7 @@ import static org.springframework.data.mongodb.core.query.Query.*;
 import java.util.Arrays;
 import java.util.List;
 
+import com.mongodb.client.MongoCollection;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,13 +43,13 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.index.GeospatialIndex;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.test.util.BasicDbListBuilder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import org.bson.Document;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.Mongo;
@@ -333,17 +334,19 @@ public class GeoJsonTests {
 				new CollectionCallback<Object>() {
 
 					@Override
-					public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+					public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
-						BasicDBObject pointRepresentation = new BasicDBObject();
+						Document pointRepresentation = new Document();
 						pointRepresentation.put("type", "Point");
 						pointRepresentation.put("coordinates", new BasicDbListBuilder().add(0).add(0).get());
 
-						BasicDBObject document = new BasicDBObject();
+						Document document = new Document();
 						document.append("_id", "datamongo-1453");
 						document.append("geoJsonPoint", pointRepresentation);
 
-						return collection.save(document);
+						collection.insertOne(document);
+
+						return document;
 					}
 				});
 
@@ -361,19 +364,21 @@ public class GeoJsonTests {
 				new CollectionCallback<Object>() {
 
 					@Override
-					public Object doInCollection(DBCollection collection) throws MongoException, DataAccessException {
+					public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
-						BasicDBObject lineStringRepresentation = new BasicDBObject();
+						Document lineStringRepresentation = new Document();
 						lineStringRepresentation.put("type", "LineString");
 						lineStringRepresentation.put("coordinates",
 								new BasicDbListBuilder().add(new BasicDbListBuilder().add(0).add(0).get())
 										.add(new BasicDbListBuilder().add(1).add(1).get()).get());
 
-						BasicDBObject document = new BasicDBObject();
+						Document document = new Document();
 						document.append("_id", "datamongo-1453");
 						document.append("geoJsonLineString", lineStringRepresentation);
 
-						return collection.save(document);
+						collection.insertOne(document);
+
+						return document;
 					}
 				});
 
@@ -418,7 +423,7 @@ public class GeoJsonTests {
 		template.dropCollection(DocumentWithPropertyUsingGeoJsonType.class);
 	}
 
-	@Document(collection = "venue2dsphere")
+	@org.springframework.data.mongodb.core.mapping.Document(collection = "venue2dsphere")
 	static class Venue2DSphere {
 
 		@Id private String id;

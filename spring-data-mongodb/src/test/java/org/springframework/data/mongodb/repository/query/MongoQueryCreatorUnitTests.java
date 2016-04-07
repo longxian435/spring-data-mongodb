@@ -58,7 +58,7 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.support.DefaultRepositoryMetadata;
 import org.springframework.data.repository.query.parser.PartTree;
 
-import com.mongodb.DBObject;
+import org.bson.Document;
 
 /**
  * Unit test for {@link MongoQueryCreator}.
@@ -241,7 +241,7 @@ public class MongoQueryCreatorUnitTests {
 
 		PartTree tree = new PartTree("findByCreator", User.class);
 		MongoQueryCreator creator = new MongoQueryCreator(tree, getAccessor(converter, user), context);
-		DBObject queryObject = creator.createQuery().getQueryObject();
+		Document queryObject = creator.createQuery().getQueryObject();
 
 		assertThat(queryObject.get("creator"), is((Object) user));
 	}

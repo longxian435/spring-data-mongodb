@@ -45,9 +45,6 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentProperty;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.BasicDBObjectBuilder;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -68,21 +65,21 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	private @Mock MongoDbFactory factory;
 	private @Mock ApplicationContext context;
 	private @Mock MongoDatabase db;
-	private @Mock MongoCollection<DBObject> collection;
+	private @Mock MongoCollection<Document> collection;
 
-	ArgumentCaptor<BasicDBObject> keysCaptor;
+	ArgumentCaptor<org.bson.Document> keysCaptor;
 	ArgumentCaptor<IndexOptions> optionsCaptor;
 	ArgumentCaptor<String> collectionCaptor;
 
 	@Before
 	public void setUp() {
 
-		keysCaptor = ArgumentCaptor.forClass(BasicDBObject.class);
+		keysCaptor = ArgumentCaptor.forClass(org.bson.Document.class);
 		optionsCaptor = ArgumentCaptor.forClass(IndexOptions.class);
 		collectionCaptor = ArgumentCaptor.forClass(String.class);
 
 		when(factory.getDb()).thenReturn(db);
-		when(db.getCollection(collectionCaptor.capture(), eq(DBObject.class))).thenReturn(collection);
+		when(db.getCollection(collectionCaptor.capture(), eq(Document.class))).thenReturn(collection);
 
 		when(collection.createIndex(keysCaptor.capture(), optionsCaptor.capture())).thenReturn("OK");
 	}
@@ -171,7 +168,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		MongoMappingContext mappingContext = prepareMappingContext(Wrapper.class);
 		new MongoPersistentEntityIndexCreator(mappingContext, factory);
 
-		assertThat(keysCaptor.getValue(), equalTo(new BasicDBObjectBuilder().add("company.address.location", "2d").get()));
+		assertThat(keysCaptor.getValue(), equalTo(new org.bson.Document().append("company.address.location", "2d")));
 
 		IndexOptions opts = optionsCaptor.getValue();
 		assertThat(opts.getName(), is(equalTo("company.address.location")));
@@ -189,7 +186,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 		MongoMappingContext mappingContext = prepareMappingContext(EntityWithGeneratedIndexName.class);
 		new MongoPersistentEntityIndexCreator(mappingContext, factory);
 
-		assertThat(keysCaptor.getValue().containsField("name"), is(false));
+		assertThat(keysCaptor.getValue().containsKey("name"), is(false));
 		assertThat(keysCaptor.getValue().keySet(), hasItem("lastname"));
 
 		assertThat(optionsCaptor.getValue().getName(), nullValue());
@@ -206,7 +203,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(DBObject.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(Document.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("wrapper"));
 	}
 
@@ -221,7 +218,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(DBObject.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(Document.class));
 		assertThat(collectionNameCapturer.getValue(), equalTo("indexedDocumentWrapper"));
 	}
 
@@ -232,7 +229,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void createIndexShouldUsePersistenceExceptionTranslatorForNonDataIntegrityConcerns() {
 
 		when(factory.getExceptionTranslator()).thenReturn(new MongoExceptionTranslator());
-		doThrow(new MongoException(6, "HostUnreachable")).when(collection).createIndex(Mockito.any(BasicDBObject.class),
+		doThrow(new MongoException(6, "HostUnreachable")).when(collection).createIndex(Mockito.any(org.bson.Document.class),
 				Mockito.any(IndexOptions.class));
 
 		MongoMappingContext mappingContext = prepareMappingContext(Person.class);
@@ -247,7 +244,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 	public void createIndexShouldNotConvertUnknownExceptionTypes() {
 
 		when(factory.getExceptionTranslator()).thenReturn(new MongoExceptionTranslator());
-		doThrow(new ClassCastException("o_O")).when(collection).createIndex(Mockito.any(BasicDBObject.class),
+		doThrow(new ClassCastException("o_O")).when(collection).createIndex(Mockito.any(org.bson.Document.class),
 				Mockito.any(IndexOptions.class));
 
 		MongoMappingContext mappingContext = prepareMappingContext(Person.class);

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.bson.Document;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.mongodb.core.BulkOperations.BulkMode;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -38,7 +39,6 @@ import org.springframework.data.util.CloseableIterator;
 
 import com.mongodb.Cursor;
 import com.mongodb.DB;
-import com.mongodb.DBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.DeleteResult;
@@ -69,12 +69,12 @@ public interface MongoOperations {
 
 	/**
 	 * Execute the a MongoDB command expressed as a JSON string. This will call the method JSON.parse that is part of the
-	 * MongoDB driver to convert the JSON string to a DBObject. Any errors that result from executing this command will be
+	 * MongoDB driver to convert the JSON string to a Document. Any errors that result from executing this command will be
 	 * converted into Spring's DAO exception hierarchy.
 	 * 
 	 * @param jsonCommand a MongoDB command expressed as a JSON string.
 	 */
-	DBObject executeCommand(String jsonCommand);
+	Document executeCommand(String jsonCommand);
 
 	/**
 	 * Execute a MongoDB command. Any errors that result from executing this command will be converted into Spring's DAO
@@ -82,7 +82,7 @@ public interface MongoOperations {
 	 * 
 	 * @param command a MongoDB command
 	 */
-	DBObject executeCommand(DBObject command);
+	Document executeCommand(Document command);
 
 	/**
 	 * Execute a MongoDB command. Any errors that result from executing this command will be converted into Spring's DAO
@@ -90,11 +90,11 @@ public interface MongoOperations {
 	 * 
 	 * @param command a MongoDB command
 	 * @param options query options to use
-	 * @deprecated since 1.7. Please use {@link #executeCommand(DBObject, ReadPreference)}, as the MongoDB Java driver
+	 * @deprecated since 1.7. Please use {@link #executeCommand(Document, ReadPreference)}, as the MongoDB Java driver
 	 *             version 3 no longer supports this operation.
 	 */
 	@Deprecated
-	DBObject executeCommand(DBObject command, int options);
+	Document executeCommand(Document command, int options);
 
 	/**
 	 * Execute a MongoDB command. Any errors that result from executing this command will be converted into Spring's data
@@ -105,7 +105,7 @@ public interface MongoOperations {
 	 * @return
 	 * @since 1.7
 	 */
-	DBObject executeCommand(DBObject command, ReadPreference readPreference);
+	Document executeCommand(Document command, ReadPreference readPreference);
 
 	/**
 	 * Execute a MongoDB query and iterate over the query results on a per-document basis with a DocumentCallbackHandler.
@@ -203,7 +203,7 @@ public interface MongoOperations {
 	 * @param entityClass class that determines the collection to create
 	 * @return the created collection
 	 */
-	<T> MongoCollection<DBObject> createCollection(Class<T> entityClass);
+	<T> MongoCollection<Document> createCollection(Class<T> entityClass);
 
 	/**
 	 * Create a collection with a name based on the provided entity class using the options.
@@ -212,7 +212,7 @@ public interface MongoOperations {
 	 * @param collectionOptions options to use when creating the collection.
 	 * @return the created collection
 	 */
-	<T> MongoCollection<DBObject> createCollection(Class<T> entityClass, CollectionOptions collectionOptions);
+	<T> MongoCollection<Document> createCollection(Class<T> entityClass, CollectionOptions collectionOptions);
 
 	/**
 	 * Create an uncapped collection with the provided name.
@@ -220,7 +220,7 @@ public interface MongoOperations {
 	 * @param collectionName name of the collection
 	 * @return the created collection
 	 */
-	MongoCollection<DBObject> createCollection(String collectionName);
+	MongoCollection<Document> createCollection(String collectionName);
 
 	/**
 	 * Create a collection with the provided name and options.
@@ -229,7 +229,7 @@ public interface MongoOperations {
 	 * @param collectionOptions options to use when creating the collection.
 	 * @return the created collection
 	 */
-	MongoCollection<DBObject> createCollection(String collectionName, CollectionOptions collectionOptions);
+	MongoCollection<Document> createCollection(String collectionName, CollectionOptions collectionOptions);
 
 	/**
 	 * A set of collection names.
@@ -246,7 +246,7 @@ public interface MongoOperations {
 	 * @param collectionName name of the collection
 	 * @return an existing collection or a newly created one.
 	 */
-	MongoCollection<DBObject> getCollection(String collectionName);
+	MongoCollection<Document> getCollection(String collectionName);
 
 	/**
 	 * Check to see if a collection with a name indicated by the entity class exists.

@@ -85,8 +85,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.DBRef;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
@@ -168,7 +166,7 @@ public class MongoTemplateTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			DBObject result = template.executeCommand("{ buildInfo: 1 }");
+			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }");
 			mongoVersion = org.springframework.data.util.Version.parse(result.get("version").toString());
 		}
 	}
@@ -349,7 +347,7 @@ public class MongoTemplateTests {
 
 		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP));
 
-		MongoCollection<DBObject> coll = template.getCollection(template.getCollectionName(Person.class));
+		MongoCollection<org.bson.Document> coll = template.getCollection(template.getCollectionName(Person.class));
 		List<org.bson.Document> indexInfo = new ArrayList<org.bson.Document>();
 		coll.listIndexes().into(indexInfo);
 
@@ -1130,7 +1128,8 @@ public class MongoTemplateTests {
 	@Test
 	public void testUsingReadPreference() throws Exception {
 		this.template.execute("readPref", new CollectionCallback<Object>() {
-			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Object doInCollection(MongoCollection<org.bson.Document> collection)
+					throws MongoException, DataAccessException {
 
 				// assertThat(collection.getOptions(), is(0));
 				// assertThat(collection.read.getDB().getOptions(), is(0));
@@ -1140,7 +1139,8 @@ public class MongoTemplateTests {
 		MongoTemplate slaveTemplate = new MongoTemplate(factory);
 		slaveTemplate.setReadPreference(ReadPreference.secondary());
 		slaveTemplate.execute("readPref", new CollectionCallback<Object>() {
-			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Object doInCollection(MongoCollection<org.bson.Document> collection)
+					throws MongoException, DataAccessException {
 				assertThat(collection.getReadPreference(), is(ReadPreference.secondary()));
 				// assertThat(collection.getDB().getOptions(), is(0));
 				return null;
@@ -1244,7 +1244,7 @@ public class MongoTemplateTests {
 		template.insert(new Person("Harry"));
 		final List<String> names = new ArrayList<String>();
 		template.executeQuery(new Query(), template.getCollectionName(Person.class), new DocumentCallbackHandler() {
-			public void processDocument(DBObject dbObject) {
+			public void processDocument(org.bson.Document dbObject) {
 				String name = (String) dbObject.get("firstName");
 				if (name != null) {
 					names.add(name);
@@ -1265,7 +1265,7 @@ public class MongoTemplateTests {
 		template.insert(new Person("Harry"));
 		final List<String> names = new ArrayList<String>();
 		template.executeQuery(new Query(), template.getCollectionName(Person.class), new DocumentCallbackHandler() {
-			public void processDocument(DBObject dbObject) {
+			public void processDocument(org.bson.Document dbObject) {
 				String name = (String) dbObject.get("firstName");
 				if (name != null) {
 					names.add(name);
@@ -1273,7 +1273,7 @@ public class MongoTemplateTests {
 			}
 		}, new CursorPreparer() {
 
-			public FindIterable<DBObject> prepare(FindIterable<DBObject> cursor) {
+			public FindIterable<org.bson.Document> prepare(FindIterable<org.bson.Document> cursor) {
 				cursor.limit(1);
 				return cursor;
 			}
@@ -1499,7 +1499,7 @@ public class MongoTemplateTests {
 	@Test
 	public void doesNotFailOnVersionInitForUnversionedEntity() {
 
-		DBObject dbObject = new BasicDBObject();
+		org.bson.Document dbObject = new org.bson.Document();
 		dbObject.put("firstName", "Oliver");
 
 		template.insert(dbObject, template.determineCollectionName(PersonWithVersionPropertyOfTypeInteger.class));
@@ -1556,10 +1556,10 @@ public class MongoTemplateTests {
 	@Test
 	public void savesPlainDbObjectCorrectly() {
 
-		DBObject dbObject = new BasicDBObject("foo", "bar");
+		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
 		template.save(dbObject, "collection");
 
-		assertThat(dbObject.containsField("_id"), is(true));
+		assertThat(dbObject.containsKey("_id"), is(true));
 	}
 
 	/**
@@ -1568,10 +1568,10 @@ public class MongoTemplateTests {
 	@Test(expected = InvalidDataAccessApiUsageException.class)
 	public void rejectsPlainObjectWithOutExplicitCollection() {
 
-		DBObject dbObject = new BasicDBObject("foo", "bar");
+		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
 		template.save(dbObject, "collection");
 
-		template.findById(dbObject.get("_id"), DBObject.class);
+		template.findById(dbObject.get("_id"), org.bson.Document.class);
 	}
 
 	/**
@@ -1580,10 +1580,10 @@ public class MongoTemplateTests {
 	@Test
 	public void readsPlainDbObjectById() {
 
-		DBObject dbObject = new BasicDBObject("foo", "bar");
+		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
 		template.save(dbObject, "collection");
 
-		DBObject result = template.findById(dbObject.get("_id"), DBObject.class, "collection");
+		org.bson.Document result = template.findById(dbObject.get("_id"), org.bson.Document.class, "collection");
 		assertThat(result.get("foo"), is(dbObject.get("foo")));
 		assertThat(result.get("_id"), is(dbObject.get("_id")));
 	}
@@ -1747,13 +1747,13 @@ public class MongoTemplateTests {
 	@Test
 	public void savesJsonStringCorrectly() {
 
-		DBObject dbObject = new BasicDBObject().append("first", "first").append("second", "second");
+		org.bson.Document dbObject = new org.bson.Document().append("first", "first").append("second", "second");
 
-		template.save(dbObject.toString(), "collection");
+		template.save(dbObject, "collection");
 
-		List<DBObject> result = template.findAll(DBObject.class, "collection");
+		List<org.bson.Document> result = template.findAll(org.bson.Document.class, "collection");
 		assertThat(result.size(), is(1));
-		assertThat(result.get(0).containsField("first"), is(true));
+		assertThat(result.get(0).containsKey("first"), is(true));
 	}
 
 	@Test
@@ -2108,7 +2108,7 @@ public class MongoTemplateTests {
 				new DocumentCallbackHandler() {
 
 					@Override
-					public void processDocument(DBObject dbObject) throws MongoException, DataAccessException {
+					public void processDocument(org.bson.Document dbObject) throws MongoException, DataAccessException {
 
 						assertThat(dbObject, is(notNullValue()));
 
@@ -2755,9 +2755,9 @@ public class MongoTemplateTests {
 
 		assertThat(result, hasSize(2));
 
-		assertThat(template.getDb().getCollection("sample")
-				.count(new BasicDBObject("field", new BasicDBObject("$in", Arrays.asList("spring", "mongodb")))), is(0L));
-		assertThat(template.getDb().getCollection("sample").count(new BasicDBObject("field", "data")), is(1L));
+		assertThat(template.getDb().getCollection("sample").count(
+				new org.bson.Document("field", new org.bson.Document("$in", Arrays.asList("spring", "mongodb")))), is(0L));
+		assertThat(template.getDb().getCollection("sample").count(new org.bson.Document("field", "data")), is(1L));
 	}
 
 	/**
@@ -3006,14 +3006,14 @@ public class MongoTemplateTests {
 	@Test
 	public void insertsAndRemovesBasicDbObjectCorrectly() {
 
-		BasicDBObject object = new BasicDBObject("key", "value");
+		org.bson.Document object = new org.bson.Document("key", "value");
 		template.insert(object, "collection");
 
 		assertThat(object.get("_id"), is(notNullValue()));
-		assertThat(template.findAll(DBObject.class, "collection"), hasSize(1));
+		assertThat(template.findAll(Document.class, "collection"), hasSize(1));
 
 		template.remove(object, "collection");
-		assertThat(template.findAll(DBObject.class, "collection"), hasSize(0));
+		assertThat(template.findAll(Document.class, "collection"), hasSize(0));
 	}
 
 	/**

@@ -18,6 +18,7 @@ package org.springframework.data.mongodb.core;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,8 +30,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 
@@ -83,8 +82,8 @@ public class MongoTemplateMappingTests {
 
 	private void checkPersonPersisted(MongoTemplate template) {
 		template.execute(Person.class, new CollectionCallback<Object>() {
-			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
-				DBObject dbo = collection.find(new BasicDBObject()).first();
+			public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
+				Document dbo = collection.find(new Document()).first();
 				assertThat((String) dbo.get("name"), is("Oliver"));
 				return null;
 			}

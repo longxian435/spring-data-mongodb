@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bson.Document;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,7 +35,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.ServerAddress;
 
@@ -98,7 +98,7 @@ public class MongoNamespaceReplicaSetTests {
 		assertEquals(10002, servers.get(1).getPort());
 
 		MongoTemplate template = new MongoTemplate(mongo, "admin");
-		DBObject result = template.executeCommand("{replSetGetStatus : 1}");
+		Document result = template.executeCommand("{replSetGetStatus : 1}");
 		assertEquals("blort", result.get("set").toString());
 	}
 }

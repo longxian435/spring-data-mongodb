@@ -23,14 +23,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.bson.Document;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mongodb.core.index.IndexDefinition;
 import org.springframework.data.mongodb.core.index.IndexField;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.util.Assert;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -74,56 +73,56 @@ public class DefaultIndexOperations implements IndexOperations {
 	 */
 	public void ensureIndex(final IndexDefinition indexDefinition) {
 		mongoOperations.execute(collectionName, new CollectionCallback<Object>() {
-			public Object doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
-				DBObject indexOptions = indexDefinition.getIndexOptions();
+				Document indexOptions = indexDefinition.getIndexOptions();
 
 				if (indexOptions != null) {
 
 					IndexOptions ops = new IndexOptions();
-					if (indexOptions.containsField("name")) {
+					if (indexOptions.containsKey("name")) {
 						ops = ops.name(indexOptions.get("name").toString());
 					}
-					if (indexOptions.containsField("unique")) {
+					if (indexOptions.containsKey("unique")) {
 						ops = ops.unique((Boolean) indexOptions.get("unique"));
 					}
 					// if(indexOptions.containsField("dropDuplicates")) {
 					// ops = ops.((boolean)indexOptions.get("dropDuplicates"));
 					// }
-					if (indexOptions.containsField("sparse")) {
+					if (indexOptions.containsKey("sparse")) {
 						ops = ops.sparse((Boolean) indexOptions.get("sparse"));
 					}
-					if (indexOptions.containsField("background")) {
+					if (indexOptions.containsKey("background")) {
 						ops = ops.background((Boolean) indexOptions.get("background"));
 					}
-					if (indexOptions.containsField("expireAfterSeconds")) {
+					if (indexOptions.containsKey("expireAfterSeconds")) {
 						ops = ops.expireAfter((Long) indexOptions.get("expireAfterSeconds"), TimeUnit.SECONDS);
 					}
-					if (indexOptions.containsField("min")) {
+					if (indexOptions.containsKey("min")) {
 						ops = ops.min(((Number) indexOptions.get("min")).doubleValue());
 					}
-					if (indexOptions.containsField("max")) {
+					if (indexOptions.containsKey("max")) {
 						ops = ops.max(((Number) indexOptions.get("max")).doubleValue());
 					}
-					if (indexOptions.containsField("bits")) {
+					if (indexOptions.containsKey("bits")) {
 						ops = ops.bits((Integer) indexOptions.get("bits"));
 					}
-					if (indexOptions.containsField("bucketSize")) {
+					if (indexOptions.containsKey("bucketSize")) {
 						ops = ops.bucketSize(((Number) indexOptions.get("bucketSize")).doubleValue());
 					}
-					if (indexOptions.containsField("default_language")) {
+					if (indexOptions.containsKey("default_language")) {
 						ops = ops.defaultLanguage(indexOptions.get("default_language").toString());
 					}
-					if (indexOptions.containsField("language_override")) {
+					if (indexOptions.containsKey("language_override")) {
 						ops = ops.languageOverride(indexOptions.get("language_override").toString());
 					}
-					if (indexOptions.containsField("weights")) {
-						ops = ops.weights((BasicDBObject) indexOptions.get("weights"));
+					if (indexOptions.containsKey("weights")) {
+						ops = ops.weights((Document) indexOptions.get("weights"));
 					}
 
-					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys(), ops);
+					collection.createIndex(indexDefinition.getIndexKeys(), ops);
 				} else {
-					collection.createIndex((BasicDBObject) indexDefinition.getIndexKeys());
+					collection.createIndex(indexDefinition.getIndexKeys());
 				}
 				return null;
 			}
@@ -136,7 +135,7 @@ public class DefaultIndexOperations implements IndexOperations {
 	 */
 	public void dropIndex(final String name) {
 		mongoOperations.execute(collectionName, new CollectionCallback<Void>() {
-			public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Void doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 				collection.dropIndex(name);
 				return null;
 			}
@@ -159,7 +158,7 @@ public class DefaultIndexOperations implements IndexOperations {
 	@Deprecated
 	public void resetIndexCache() {
 		mongoOperations.execute(collectionName, new CollectionCallback<Void>() {
-			public Void doInCollection(MongoCollection<DBObject> collection) throws MongoException, DataAccessException {
+			public Void doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
 
 				// TODO remove this one
 				// ReflectiveDBCollectionInvoker.resetIndexCache(collection);
@@ -175,21 +174,21 @@ public class DefaultIndexOperations implements IndexOperations {
 	public List<IndexInfo> getIndexInfo() {
 
 		return mongoOperations.execute(collectionName, new CollectionCallback<List<IndexInfo>>() {
-			public List<IndexInfo> doInCollection(MongoCollection<DBObject> collection)
+			public List<IndexInfo> doInCollection(MongoCollection<Document> collection)
 					throws MongoException, DataAccessException {
 
-				MongoCursor<DBObject> dbObjectList = collection.listIndexes(DBObject.class).iterator();
+				MongoCursor<Document> dbObjectList = collection.listIndexes(Document.class).iterator();
 				return getIndexData(dbObjectList);
 			}
 
-			private List<IndexInfo> getIndexData(MongoCursor<DBObject> dbObjectList) {
+			private List<IndexInfo> getIndexData(MongoCursor<Document> dbObjectList) {
 
 				List<IndexInfo> indexInfoList = new ArrayList<IndexInfo>();
 
 				while (dbObjectList.hasNext()) {
 
-					DBObject ix = dbObjectList.next();
-					DBObject keyDbObject = (DBObject) ix.get("key");
+					Document ix = dbObjectList.next();
+					Document keyDbObject = (Document) ix.get("key");
 					int numberOfElements = keyDbObject.keySet().size();
 
 					List<IndexField> indexFields = new ArrayList<IndexField>(numberOfElements);
@@ -202,7 +201,7 @@ public class DefaultIndexOperations implements IndexOperations {
 							indexFields.add(IndexField.geo(key));
 						} else if ("text".equals(value)) {
 
-							DBObject weights = (DBObject) ix.get("weights");
+							Document weights = (Document) ix.get("weights");
 							for (String fieldName : weights.keySet()) {
 								indexFields.add(IndexField.text(fieldName, Float.valueOf(weights.get(fieldName).toString())));
 							}
@@ -221,10 +220,10 @@ public class DefaultIndexOperations implements IndexOperations {
 
 					String name = ix.get("name").toString();
 
-					boolean unique = ix.containsField("unique") ? (Boolean) ix.get("unique") : false;
-					boolean dropDuplicates = ix.containsField("dropDups") ? (Boolean) ix.get("dropDups") : false;
-					boolean sparse = ix.containsField("sparse") ? (Boolean) ix.get("sparse") : false;
-					String language = ix.containsField("default_language") ? (String) ix.get("default_language") : "";
+					boolean unique = ix.containsKey("unique") ? (Boolean) ix.get("unique") : false;
+					boolean dropDuplicates = ix.containsKey("dropDups") ? (Boolean) ix.get("dropDups") : false;
+					boolean sparse = ix.containsKey("sparse") ? (Boolean) ix.get("sparse") : false;
+					String language = ix.containsKey("default_language") ? (String) ix.get("default_language") : "";
 					indexInfoList.add(new IndexInfo(indexFields, name, unique, dropDuplicates, sparse, language));
 				}
 

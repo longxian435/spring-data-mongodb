@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -43,8 +44,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.client.MongoCollection;
 
@@ -286,11 +285,11 @@ public class MapReduceTests {
 	@Test
 	public void mapReduceShouldUseQueryMapper() {
 
-		MongoCollection<DBObject> c = mongoTemplate.getDb().getCollection("jmrWithGeo", DBObject.class);
+		MongoCollection<Document> c = mongoTemplate.getDb().getCollection("jmrWithGeo", Document.class);
 
-		c.insertOne(new BasicDBObject("x", new String[] { "a", "b" }).append("loc", new double[] { 0, 0 }));
-		c.insertOne(new BasicDBObject("x", new String[] { "b", "c" }).append("loc", new double[] { 0, 0 }));
-		c.insertOne(new BasicDBObject("x", new String[] { "c", "d" }).append("loc", new double[] { 0, 0 }));
+		c.insertOne(new Document("x", Arrays.asList("a", "b")).append("loc", Arrays.<Double> asList(0D, 0D)));
+		c.insertOne(new Document("x", Arrays.asList("b", "c")).append("loc", Arrays.<Double> asList(0D, 0D)));
+		c.insertOne(new Document("x", Arrays.asList("c", "d")).append("loc", Arrays.<Double> asList(0D, 0D)));
 
 		Query query = new Query(where("x").ne(new String[] { "a", "b" }).and("loc")
 				.within(new Box(new double[] { 0, 0 }, new double[] { 1, 1 })));
@@ -329,10 +328,10 @@ public class MapReduceTests {
 	}
 
 	private void createMapReduceData() {
-		MongoCollection<DBObject> c = mongoTemplate.getDb().getCollection("jmr1", DBObject.class);
-		c.insertOne(new BasicDBObject("x", new String[] { "a", "b" }));
-		c.insertOne(new BasicDBObject("x", new String[] { "b", "c" }));
-		c.insertOne(new BasicDBObject("x", new String[] { "c", "d" }));
+		MongoCollection<Document> c = mongoTemplate.getDb().getCollection("jmr1", Document.class);
+		c.insertOne(new Document("x", Arrays.asList("a", "b")));
+		c.insertOne(new Document("x", Arrays.asList("b", "c")));
+		c.insertOne(new Document("x", Arrays.asList("c", "d")));
 	}
 
 	private Map<String, Float> copyToMap(MapReduceResults<ValueObject> results) {

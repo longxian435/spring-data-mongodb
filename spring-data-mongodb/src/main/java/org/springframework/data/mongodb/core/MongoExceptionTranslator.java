@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bson.BsonInvalidOperationException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -69,6 +70,10 @@ public class MongoExceptionTranslator implements PersistenceExceptionTranslator 
 	public DataAccessException translateExceptionIfPossible(RuntimeException ex) {
 
 		// Check for well-known MongoException subclasses.
+
+		if (ex instanceof BsonInvalidOperationException) {
+			throw new InvalidDataAccessApiUsageException(ex.getMessage(), ex);
+		}
 
 		String exception = ClassUtils.getShortName(ClassUtils.getUserClass(ex.getClass()));
 
