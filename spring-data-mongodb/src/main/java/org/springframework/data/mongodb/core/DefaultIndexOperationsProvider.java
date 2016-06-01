@@ -17,20 +17,31 @@
 package org.springframework.data.mongodb.core;
 
 import org.springframework.dao.support.PersistenceExceptionTranslator;
+import org.springframework.data.mongodb.MongoDbFactory;
 
 /**
- * TODO: Revisit for a better pattern.
+ * Temporary bridge for IndexOperationsProvider. TODO: Remove me
+ *
  * @author Mark Paluch
  */
-public interface IndexOperationsProvider {
+public class DefaultIndexOperationsProvider implements IndexOperationsProvider {
 
-	/**
-	 * Returns the operations that can be performed on indexes
-	 *
-	 * @return index operations on the named collection
-	 */
-	IndexOperations indexOps(String collectionName);
+	private final MongoDbFactory mongoDbFactory;
+	private final MongoTemplate mongoTemplate;
 
-	PersistenceExceptionTranslator getExceptionTranslator();
+	public DefaultIndexOperationsProvider(MongoDbFactory mongoDbFactory) {
 
+		this.mongoDbFactory = mongoDbFactory;
+		this.mongoTemplate = new MongoTemplate(mongoDbFactory);
+	}
+
+	@Override
+	public IndexOperations indexOps(String collectionName) {
+		return new DefaultIndexOperations(mongoTemplate, collectionName);
+	}
+
+	@Override
+	public PersistenceExceptionTranslator getExceptionTranslator() {
+		return mongoDbFactory.getExceptionTranslator();
+	}
 }

@@ -111,7 +111,7 @@ public class MongoPersistentEntityIndexCreatorIntegrationTests {
 		MongoTemplate mongoTemplate = new MongoTemplate(new MongoClient(), "issue");
 
 		MongoPersistentEntityIndexCreator indexCreator = new MongoPersistentEntityIndexCreator(new MongoMappingContext(),
-				mongoTemplate, mongoTemplate.getMongoDbFactory().getExceptionTranslator());
+				mongoTemplate);
 
 		indexCreator.createIndex(new IndexDefinitionHolder("dalinar.kohlin", new Index().named("stormlight")
 				.on("lastname", Direction.ASC).unique(), "datamongo-1125"));

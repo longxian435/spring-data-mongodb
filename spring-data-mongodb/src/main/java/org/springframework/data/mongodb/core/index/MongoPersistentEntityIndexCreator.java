@@ -29,6 +29,7 @@ import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.context.MappingContextEvent;
 import org.springframework.data.mongodb.MongoDbFactory;
+import org.springframework.data.mongodb.UncategorizedMongoDbException;
 import org.springframework.data.mongodb.core.IndexOperations;
 import org.springframework.data.mongodb.core.IndexOperationsProvider;
 import org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver.IndexDefinitionHolder;
@@ -68,10 +69,9 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 	 * {@link MongoDbFactory}.
 	 *  @param mappingContext must not be {@literal null}.
 	 * @param indexOperationsProvider must not be {@literal null}.
-	 * @param exceptionTranslator must not be {@literal null}.
 	 */
-	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider, PersistenceExceptionTranslator exceptionTranslator) {
-		this(mappingContext, indexOperationsProvider, new MongoPersistentEntityIndexResolver(mappingContext), exceptionTranslator);
+	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider) {
+		this(mappingContext, indexOperationsProvider, new MongoPersistentEntityIndexResolver(mappingContext), indexOperationsProvider.getExceptionTranslator());
 	}
 
 	/**
@@ -202,9 +202,9 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 			IndexOperations indexOperations = indexOperationsProvider.indexOps(indexDefinition.getCollection());
 			indexOperations.ensureIndex(indexDefinition);
 
-		} catch (MongoException ex) {
+		} catch (UncategorizedMongoDbException ex) {
 
-			if (MongoDbErrorCodes.isDataIntegrityViolationCode(ex.getCode())) {
+			if (ex.getCause() instanceof MongoException &&  MongoDbErrorCodes.isDataIntegrityViolationCode(((MongoException) ex.getCause()).getCode())) {
 
 				IndexInfo existingIndex = fetchIndexInformation(indexDefinition);
 				String message = "Cannot create index for '%s' in collection '%s' with keys '%s' and options '%s'.";
@@ -216,12 +216,10 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 				throw new DataIntegrityViolationException(
 						String.format(message, indexDefinition.getPath(), indexDefinition.getCollection(),
 								indexDefinition.getIndexKeys(), indexDefinition.getIndexOptions(), existingIndex),
-						ex);
+						ex.getCause());
 			}
 
-			RuntimeException exceptionToThrow = exceptionTranslator.translateExceptionIfPossible(ex);
-
-			throw exceptionToThrow != null ? exceptionToThrow : ex;
+			throw ex;
 		}
 	}
 

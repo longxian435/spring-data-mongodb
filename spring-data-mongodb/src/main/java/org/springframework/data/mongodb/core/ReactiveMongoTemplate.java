@@ -195,7 +195,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 		if (null != mappingContext && mappingContext instanceof MongoMappingContext) {
 			indexCreator = new MongoPersistentEntityIndexCreator((MongoMappingContext) mappingContext,
-					new BlockingIndexOptionsProvider(this), exceptionTranslator);
+					new BlockingIndexOptionsProvider(this));
 			eventPublisher = new MongoMappingEventPublisher(indexCreator);
 			if (mappingContext instanceof ApplicationEventPublisherAware) {
 				((ApplicationEventPublisherAware) mappingContext).setApplicationEventPublisher(eventPublisher);
@@ -2257,15 +2257,20 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 */
 	private class BlockingIndexOptionsProvider implements IndexOperationsProvider {
 
-		private final ReactiveMongoOperations mongoOperations;
+		private final ReactiveMongoTemplate mongoOperations;
 
-		public BlockingIndexOptionsProvider(ReactiveMongoOperations mongoOperations) {
+		public BlockingIndexOptionsProvider(ReactiveMongoTemplate mongoOperations) {
 			this.mongoOperations = mongoOperations;
 		}
 
 		@Override
 		public IndexOperations indexOps(String collectionName) {
 			return new BlockingIndexOptions(mongoOperations.indexOps(collectionName));
+		}
+
+		@Override
+		public PersistenceExceptionTranslator getExceptionTranslator() {
+			return mongoOperations.exceptionTranslator;
 		}
 	}
 

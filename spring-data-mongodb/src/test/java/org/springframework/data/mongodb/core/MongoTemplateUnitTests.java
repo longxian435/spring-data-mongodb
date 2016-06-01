@@ -291,7 +291,7 @@ public class MongoTemplateUnitTests extends MongoOperationsUnitTests {
 
 		GenericApplicationContext applicationContext = new GenericApplicationContext();
 		applicationContext.getBeanFactory().registerSingleton("foo",
-				new MongoPersistentEntityIndexCreator(new MongoMappingContext(), template, factory.getExceptionTranslator()));
+				new MongoPersistentEntityIndexCreator(new MongoMappingContext(), template));
 		applicationContext.refresh();
 
 		GenericApplicationContext spy = spy(applicationContext);
