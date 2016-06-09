@@ -30,6 +30,7 @@ import reactor.core.publisher.MonoProcessor;
  *
  * @param <T> the type of which the page consists.
  * @author Mark Paluch
+ * @since 2.0
  */
 public class ReactivePageImpl<T> extends ReactiveChunk<T> implements Page<T> {
 
@@ -48,22 +49,12 @@ public class ReactivePageImpl<T> extends ReactiveChunk<T> implements Page<T> {
 	 *          content given, if it is going to be the content of the last page. This is in place to mitigate
 	 *          inconsistencies
 	 */
-	public ReactivePageImpl(Flux<T> content, Pageable pageable, Mono<Long> totalMono) {
+	public ReactivePageImpl(Flux<? extends T> content, Pageable pageable, Mono<Long> totalMono) {
 
 		super(content, pageable);
 
 		this.pageable = pageable;
 		this.totalMono = totalMono.subscribe();
-	}
-
-	/**
-	 * Creates a new {@link ReactivePageImpl} with the given content. This will result in the created {@link Page} being
-	 * identical to the entire {@link List}.
-	 *
-	 * @param content must not be {@literal null}.
-	 */
-	public ReactivePageImpl(List<T> content) {
-		this(Flux.fromIterable(content), null, Mono.just(null == content ? 0L : (long) content.size()));
 	}
 
 	/*
@@ -78,7 +69,7 @@ public class ReactivePageImpl<T> extends ReactiveChunk<T> implements Page<T> {
 	private long getTotal0() {
 
 		if (totalValueCache == null) {
-			long total = totalMono.get();
+			long total = totalMono.block();
 			List<T> content = getContent();
 			this.totalValueCache = !content.isEmpty() && pageable != null
 					&& pageable.getOffset() + pageable.getPageSize() > total ? pageable.getOffset() + content.size() : total;

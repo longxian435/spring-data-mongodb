@@ -51,13 +51,20 @@ abstract class ReactiveChunk<T> implements Slice<T>, Serializable {
 	 * @param content must not be {@literal null}.
 	 * @param pageable can be {@literal null}.
 	 */
-	public ReactiveChunk(Flux<T> content, Pageable pageable) {
+	public ReactiveChunk(Flux<? extends T> content, Pageable pageable) {
 
 		Assert.notNull(content, "Content must not be null!");
 
-		this.content = content;
+		this.content = (Flux) content;
 		this.pageable = pageable;
-		this.processor = content.toList().doOnSuccess(list -> contentCache = list).subscribe();
+		this.processor = this.content.collectList().doOnSuccess(list -> {
+
+			if (list.size() > pageable.getPageSize()) {
+				contentCache = list.subList(0, pageable.getPageSize());
+			} else {
+				contentCache = list;
+			}
+		}).subscribe();
 	}
 
 	/*
@@ -182,11 +189,33 @@ abstract class ReactiveChunk<T> implements Slice<T>, Serializable {
 
 	protected List<T> getContent0() {
 
-		if(contentCache != null){
+		if (contentCache != null) {
 			return contentCache;
 		}
 
-		return processor.get();
+		List<T> list = processor.block();
+
+		if (list.size() > pageable.getPageSize()) {
+			return list.subList(0, pageable.getPageSize());
+		}
+
+		return list;
+	}
+
+	/**
+	 * Returns whether the returned list contains more elements than specified by {@link Pageable#getPageSize()}.
+	 * 
+	 * @return
+	 */
+	protected boolean containsMore() {
+
+		List<T> list = processor.block();
+		
+		if (list.size() > pageable.getPageSize()) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/*
@@ -206,10 +235,9 @@ abstract class ReactiveChunk<T> implements Slice<T>, Serializable {
 
 		ReactiveChunk<?> that = (ReactiveChunk<?>) obj;
 
-		boolean contentEqual = this.content.equals(that.content);
 		boolean pageableEqual = this.pageable == null ? that.pageable == null : this.pageable.equals(that.pageable);
 
-		return contentEqual && pageableEqual;
+		return pageableEqual;
 	}
 
 	/*
@@ -222,7 +250,6 @@ abstract class ReactiveChunk<T> implements Slice<T>, Serializable {
 		int result = 17;
 
 		result += 31 * (pageable == null ? 0 : pageable.hashCode());
-		result += 31 * content.hashCode();
 
 		return result;
 	}

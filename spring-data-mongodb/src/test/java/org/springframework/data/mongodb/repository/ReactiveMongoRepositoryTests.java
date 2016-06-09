@@ -30,6 +30,10 @@ import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.Person.Sex;
 import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactory;
@@ -81,7 +85,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 
 		repository = factory.getRepository(ReactivePersonRepostitory.class);
 
-		repository.deleteAll().get();
+		repository.deleteAll().block();
 
 		dave = new Person("Dave", "Matthews", 42);
 		oliver = new Person("Oliver August", "Matthews", 4);
@@ -95,24 +99,73 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 
 		alicia = new Person("Alicia", "Keys", 30, Sex.FEMALE);
 
-		TestSubscriber<Person> subscriber = new TestSubscriber<>();
+		TestSubscriber<Person> subscriber = TestSubscriber.create();
 		repository.save(Arrays.asList(oliver, dave, carter, boyd, stefan, leroi, alicia)).subscribe(subscriber);
 
 		subscriber.await().assertComplete().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void shouldFindByLastName() throws Exception {
 
-		List<Person> list = repository.findByLastname("Matthews").toList().get();
+		List<Person> list = repository.findByLastname("Matthews").collectList().block();
 
 		assertThat(list, hasSize(2));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldFindMonoOfPage() throws Exception {
+
+		Mono<Page<Person>> pageMono = repository.findMonoPageByLastname("Matthews", new PageRequest(0, 1));
+
+		Page<Person> persons = pageMono.block();
+
+		assertThat(persons.getContent(), hasSize(1));
+		assertThat(persons.getTotalPages(), is(2));
+
+
+		pageMono = repository.findMonoPageByLastname("Matthews", new PageRequest(0, 100));
+
+		persons = pageMono.block();
+
+		assertThat(persons.getContent(), hasSize(2));
+		assertThat(persons.getTotalPages(), is(1));
+	}
+	
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldFindMonoOfSlice() throws Exception {
+
+		Mono<Slice<Person>> pageMono = repository.findMonoSliceByLastname("Matthews", new PageRequest(0, 1));
+
+		Slice<Person> persons = pageMono.block();
+
+		assertThat(persons.getContent(), hasSize(1));
+		assertThat(persons.hasNext(), is(true));
+
+		pageMono = repository.findMonoSliceByLastname("Matthews", new PageRequest(0, 100));
+
+		persons = pageMono.block();
+
+		assertThat(persons.getContent(), hasSize(2));
+		assertThat(persons.hasNext(), is(false));
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void shouldFindOneByLastName() throws Exception {
 
-		Person carter = repository.findOneByLastname("Beauford").get();
+		Person carter = repository.findOneByLastname("Beauford").block();
 
 		assertThat(carter.getFirstname(), is(equalTo("Carter")));
 	}
@@ -129,8 +182,9 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 
 		Mono<Person> findOneByLastname(String lastname);
 
-		Flux<Person> findByLastnameStartsWith(String prefix);
+		Mono<Page<Person>> findMonoPageByLastname(String lastname, Pageable pageRequest);
+		
+		Mono<Slice<Person>> findMonoSliceByLastname(String lastname, Pageable pageRequest);
 
-		Mono<Person> findByLastnameEndsWith(String postfix);
 	}
 }

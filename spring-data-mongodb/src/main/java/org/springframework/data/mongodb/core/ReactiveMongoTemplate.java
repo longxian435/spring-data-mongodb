@@ -499,7 +499,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("Dropped collection [" + collectionName + "]");
 			}
-		}).after();
+		}).then();
 	}
 
 	/* (non-Javadoc)
@@ -822,13 +822,13 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 						maybeEmitEvent(new BeforeSaveEvent<T>(o, dbDoc, collectionName));
 						return Flux.zip(Mono.just(o), Mono.just(dbDoc));
 					}
-				}).toList();
+				}).collectList();
 
 		Flux<Tuple2<T, Document>> insertDocuments = prepareDocuments.flatMap(tuples -> {
 
 			List<Document> dbObjects = tuples.stream().map(Tuple2::getT2).collect(Collectors.toList());
-
-			return insertDocumentList(collectionName, dbObjects).after(Flux.fromIterable(tuples));
+			                       
+			return insertDocumentList(collectionName, dbObjects).thenMany(Flux.fromIterable(tuples));
 		});
 
 		return insertDocuments.map(tuple -> {
@@ -1429,7 +1429,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 		Flux<T> flux = find(query, entityClass, collectionName);
 
-		return Flux.from(flux).toList()
+		return Flux.from(flux).collectList()
 				.flatMap(list -> Flux.from(remove(getIdInQueryFor(list), entityClass, collectionName))
 						.flatMap(deleteResult -> Flux.fromIterable(list)));
 	}
@@ -2289,17 +2289,17 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 		@Override
 		public void ensureIndex(IndexDefinition indexDefinition) {
-			reactiveIndexOperations.ensureIndex(indexDefinition).get();
+			reactiveIndexOperations.ensureIndex(indexDefinition).block();
 		}
 
 		@Override
 		public void dropIndex(String name) {
-			reactiveIndexOperations.dropIndex(name).get();
+			reactiveIndexOperations.dropIndex(name).block();
 		}
 
 		@Override
 		public void dropAllIndexes() {
-			reactiveIndexOperations.dropAllIndexes().get();
+			reactiveIndexOperations.dropAllIndexes().block();
 		}
 
 		@Override
@@ -2307,7 +2307,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 		@Override
 		public List<IndexInfo> getIndexInfo() {
-			return reactiveIndexOperations.getIndexInfo().toList().get();
+			return reactiveIndexOperations.getIndexInfo().collectList().block();
 		}
 	}
 }

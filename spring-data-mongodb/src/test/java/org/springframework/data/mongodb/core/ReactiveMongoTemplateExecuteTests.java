@@ -19,6 +19,7 @@ package org.springframework.data.mongodb.core;
 import static com.sun.prism.impl.Disposer.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 import java.util.List;
 
@@ -51,31 +52,40 @@ import reactor.core.test.TestSubscriber;
 @ContextConfiguration("classpath:reactive-infrastructure.xml")
 public class ReactiveMongoTemplateExecuteTests {
 
+	private static final org.springframework.data.util.Version THREE = org.springframework.data.util.Version.parse("3.0");
+
 	@Autowired ReactiveMongoDbFactory factory;
 	@Autowired ReactiveMongoOperations operations;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();
 
+	org.springframework.data.util.Version mongoVersion;
+
 	@Before
 	public void setUp() {
 		cleanUp();
+
+		if (mongoVersion == null) {
+			org.bson.Document result = operations.executeCommand("{ buildInfo: 1 }").next().block();
+			mongoVersion = org.springframework.data.util.Version.parse(result.get("version").toString());
+		}
 	}
 
 	@After
 	public void tearDown() {
 
-		operations.dropCollection("person").get();
-		operations.dropCollection(Person.class).get();
-		operations.dropCollection("execute_test").get();
-		operations.dropCollection("execute_test1").get();
-		operations.dropCollection("execute_test2").get();
-		operations.dropCollection("execute_index_test").get();
+		operations.dropCollection("person").block();
+		operations.dropCollection(Person.class).block();
+		operations.dropCollection("execute_test").block();
+		operations.dropCollection("execute_test1").block();
+		operations.dropCollection("execute_test2").block();
+		operations.dropCollection("execute_index_test").block();
 	}
 
 	@Test
 	public void executeCommandJsonCommandShouldReturnSingleResponse() throws Exception {
 
-		Document document = operations.executeCommand("{ buildInfo: 1 }").next().get();
+		Document document = operations.executeCommand("{ buildInfo: 1 }").next().block();
 
 		assertThat(document, hasKey("version"));
 	}
@@ -83,7 +93,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandDocumentCommandShouldReturnSingleResponse() throws Exception {
 
-		Document document = operations.executeCommand(new Document("buildInfo", 1)).next().get();
+		Document document = operations.executeCommand(new Document("buildInfo", 1)).next().block();
 
 		assertThat(document, hasKey("version"));
 	}
@@ -91,9 +101,11 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandJsonCommandShouldReturnMultipleResponses() throws Exception {
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().get();
+		assumeTrue(mongoVersion.isGreaterThan(THREE));
 
-		TestSubscriber<Document> subscriber = new TestSubscriber<>();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
+
+		TestSubscriber<Document> subscriber = TestSubscriber.create();
 		operations.executeCommand("{ find: 'execute_test'}").subscribe(subscriber);
 
 		subscriber.awaitAndAssertNextValueCount(1);
@@ -107,9 +119,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandJsonCommandShouldTranslateExceptions() throws Exception {
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
-
-		testSubscriber.bindTo(operations.executeCommand("{ unknown: 1 }"));
+		TestSubscriber<Document> testSubscriber = TestSubscriber.subscribe(operations.executeCommand("{ unknown: 1 }"));
 
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
@@ -117,9 +127,8 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandDocumentCommandShouldTranslateExceptions() throws Exception {
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
-
-		testSubscriber.bindTo(operations.executeCommand(new Document("unknown", 1)));
+		TestSubscriber<Document> testSubscriber = TestSubscriber
+				.subscribe(operations.executeCommand(new Document("unknown", 1)));
 
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
@@ -127,9 +136,8 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandWithReadPreferenceCommandShouldTranslateExceptions() throws Exception {
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
-
-		testSubscriber.bindTo(operations.executeCommand(new Document("unknown", 1), ReadPreference.nearest()));
+		TestSubscriber<Document> testSubscriber = TestSubscriber
+				.subscribe(operations.executeCommand(new Document("unknown", 1), ReadPreference.nearest()));
 
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
@@ -137,14 +145,14 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnDatabaseShouldExecuteCommand() throws Exception {
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().get();
-		operations.executeCommand("{ insert: 'execute_test1', documents: [{},{},{}]}").next().get();
-		operations.executeCommand("{ insert: 'execute_test2', documents: [{},{},{}]}").next().get();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'execute_test1', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'execute_test2', documents: [{},{},{}]}").next().block();
 
 		Flux<Document> execute = operations.execute(MongoDatabase::listCollections);
 
 		List<Document> documents = execute.filter(document -> document.getString("name").startsWith("execute_test"))
-				.toList().get();
+				.collectList().block();
 
 		assertThat(documents, hasSize(3));
 	}
@@ -162,13 +170,13 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnDatabaseShouldShouldTranslateExceptions() throws Exception {
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
+		TestSubscriber<Document> testSubscriber = TestSubscriber.create();
 
 		Flux<Document> execute = operations.execute(db -> {
 			throw new MongoException(50, "hi there");
 		});
 
-		testSubscriber.bindTo(execute);
+		execute.subscribe(testSubscriber);
 
 		testSubscriber.await().assertError(UncategorizedMongoDbException.class);
 	}
@@ -176,12 +184,12 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnCollectionWithTypeShouldReturnFindResults() throws Exception {
 
-		operations.executeCommand("{ insert: 'person', documents: [{},{},{}]}").next().get();
+		operations.executeCommand("{ insert: 'person', documents: [{},{},{}]}").next().block();
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
+		TestSubscriber<Document> testSubscriber = TestSubscriber.create();
 
 		Flux<Document> execute = operations.execute(Person.class, collection -> collection.find());
-		testSubscriber.bindTo(execute);
+		execute.subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(3).assertComplete();
 	}
@@ -189,12 +197,12 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnCollectionWithNameShouldReturnFindResults() throws Exception {
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().get();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
 
-		TestSubscriber<Document> testSubscriber = new TestSubscriber<>();
+		TestSubscriber<Document> testSubscriber = TestSubscriber.create();
 
 		Flux<Document> execute = operations.execute("execute_test", collection -> collection.find());
-		testSubscriber.bindTo(execute);
+		execute.subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(3).assertComplete();
 	}

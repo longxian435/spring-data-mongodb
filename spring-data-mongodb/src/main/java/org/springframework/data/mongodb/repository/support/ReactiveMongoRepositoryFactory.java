@@ -18,6 +18,9 @@ package org.springframework.data.mongodb.repository.support;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
+import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
@@ -38,11 +41,14 @@ import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.util.QueryExecutionConverters;
-import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
 
+import reactor.core.converter.DependencyUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import rx.Observable;
+import rx.Single;
 
 /**
  * Factory to create {@link org.springframework.data.mongodb.repository.ReactiveMongoRepository} instances.
@@ -67,6 +73,10 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 		this.operations = mongoOperations;
 		this.mappingContext = mongoOperations.getConverter().getMappingContext();
+
+		DefaultConversionService conversionService = new DefaultConversionService();
+		QueryExecutionConverters.registerConvertersIn(conversionService);
+		setConversionService(conversionService);
 	}
 
 	/*
@@ -168,20 +178,54 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 	static class ReactiveMongoQueryMethod extends MongoQueryMethod {
 
-		private final Class<?> unwrappedReturnType;
+		private Method method;
 
 		public ReactiveMongoQueryMethod(Method method, RepositoryMetadata metadata, ProjectionFactory projectionFactory,
 				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext) {
 			super(method, metadata, projectionFactory, mappingContext);
 
-			this.unwrappedReturnType = potentiallyUnwrapReturnTypeFor(method);
+			this.method = method;
 		}
 
 		@Override
 		public boolean isCollectionQuery() {
-			return !(isPageQuery() || isSliceQuery())
-					&& org.springframework.util.ClassUtils.isAssignable(Flux.class, unwrappedReturnType);
 
+			boolean notPageable = !(isPageQuery() || isSliceQuery());
+
+			// TODO: Implement in a way that allows absence of RxJava/Reactor.
+			if (notPageable && org.springframework.util.ClassUtils.isAssignable(Flux.class, method.getReturnType())) {
+				return true;
+			}
+
+			if (DependencyUtils.hasRxJava1()) {
+				if (notPageable && org.springframework.util.ClassUtils.isAssignable(Observable.class, method.getReturnType())) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		/**
+		 * Returns whether the query returns a single element which can be either a {@link Page}/{@link Slice} or a domain
+		 * type.
+		 * 
+		 * @return
+		 */
+		private boolean isSingleQuery() {
+
+			// TODO: Implement in a way that allows absence of RxJava/Reactor.
+			if (org.springframework.util.ClassUtils.isAssignable(Mono.class, method.getReturnType())) {
+				return true;
+			}
+
+			if (DependencyUtils.hasRxJava1()) {
+				if (org.springframework.util.ClassUtils.isAssignable(Single.class, method.getReturnType())) {
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		@Override
@@ -197,16 +241,6 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		@Override
 		public boolean isStreamQuery() {
 			return false;
-		}
-
-		private static Class<? extends Object> potentiallyUnwrapReturnTypeFor(Method method) {
-
-			if (QueryExecutionConverters.supports(method.getReturnType())) {
-				// unwrap only one level to handle cases like Future<List<Entity>> correctly.
-				return ClassTypeInformation.fromReturnTypeOf(method).getComponentType().getType();
-			}
-
-			return method.getReturnType();
 		}
 	}
 }

@@ -16,9 +16,10 @@
 
 package org.springframework.data.mongodb.core;
 
-import lombok.Data;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.springframework.data.mongodb.core.query.Criteria.*;
+import static org.springframework.data.mongodb.core.query.Query.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +45,6 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.MongoTemplateTests.PersonWithConvertedId;
-import org.springframework.data.mongodb.core.MongoTemplateTests.Sample;
 import org.springframework.data.mongodb.core.MongoTemplateTests.VersionedPerson;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -54,12 +54,11 @@ import org.springframework.data.util.Version;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.springframework.data.mongodb.core.query.Criteria.where;
-import static org.springframework.data.mongodb.core.query.Query.query;
+import com.mongodb.WriteConcern;
+
+import lombok.Data;
 import reactor.core.publisher.Flux;
 import reactor.core.test.TestSubscriber;
-
-import com.mongodb.WriteConcern;
 
 /**
  * Integration test for {@link MongoTemplate}.
@@ -89,28 +88,28 @@ public class ReactiveMongoTemplateTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().get();
+			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().block();
 			mongoVersion = org.springframework.data.util.Version.parse(result.get("version").toString());
 		}
 	}
 
 	private void cleanDb() {
-		template.dropCollection("people").get();
-		template.dropCollection("collection").get();
-		template.dropCollection(Person.class).get();
-		template.dropCollection(PersonWithAList.class).get();
-		template.dropCollection(PersonWith_idPropertyOfTypeObjectId.class).get();
-		template.dropCollection(PersonWith_idPropertyOfTypeString.class).get();
-		template.dropCollection(PersonWithIdPropertyOfTypeObjectId.class).get();
-		template.dropCollection(PersonWithIdPropertyOfTypeString.class).get();
-		template.dropCollection(PersonWithIdPropertyOfTypeInteger.class).get();
-		template.dropCollection(PersonWithIdPropertyOfTypeBigInteger.class).get();
-		template.dropCollection(PersonWithIdPropertyOfPrimitiveInt.class).get();
-		template.dropCollection(PersonWithIdPropertyOfTypeLong.class).get();
-		template.dropCollection(PersonWithIdPropertyOfPrimitiveLong.class).get();
-		template.dropCollection(PersonWithVersionPropertyOfTypeInteger.class).get();
-		template.dropCollection(BaseDoc.class).get();
-		template.dropCollection(Sample.class).get();
+		template.dropCollection("people").block();
+		template.dropCollection("collection").block();
+		template.dropCollection(Person.class).block();
+		template.dropCollection(PersonWithAList.class).block();
+		template.dropCollection(PersonWith_idPropertyOfTypeObjectId.class).block();
+		template.dropCollection(PersonWith_idPropertyOfTypeString.class).block();
+		template.dropCollection(PersonWithIdPropertyOfTypeObjectId.class).block();
+		template.dropCollection(PersonWithIdPropertyOfTypeString.class).block();
+		template.dropCollection(PersonWithIdPropertyOfTypeInteger.class).block();
+		template.dropCollection(PersonWithIdPropertyOfTypeBigInteger.class).block();
+		template.dropCollection(PersonWithIdPropertyOfPrimitiveInt.class).block();
+		template.dropCollection(PersonWithIdPropertyOfTypeLong.class).block();
+		template.dropCollection(PersonWithIdPropertyOfPrimitiveLong.class).block();
+		template.dropCollection(PersonWithVersionPropertyOfTypeInteger.class).block();
+		template.dropCollection(BaseDoc.class).block();
+		template.dropCollection(Sample.class).block();
 	}
 
 	@Test
@@ -119,7 +118,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList person = new PersonWithAList();
 		assert person.getId() == null;
 
-		template.insert(person).get();
+		template.insert(person).block();
 
 		assertThat(person.getId(), is(notNullValue()));
 	}
@@ -130,7 +129,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList person = new PersonWithAList();
 		assert person.getId() == null;
 
-		template.insertAll(Arrays.asList(person)).next().get();
+		template.insertAll(Arrays.asList(person)).next().block();
 
 		assertThat(person.getId(), is(notNullValue()));
 	}
@@ -141,7 +140,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList person = new PersonWithAList();
 		assert person.getId() == null;
 
-		template.insert(Arrays.asList(person), PersonWithAList.class).next().get();
+		template.insert(Arrays.asList(person), PersonWithAList.class).next().block();
 
 		assertThat(person.getId(), is(notNullValue()));
 	}
@@ -152,20 +151,19 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList person = new PersonWithAList();
 		assert person.getId() == null;
 
-		template.save(person).get();
+		template.save(person).block();
 
 		assertThat(person.getId(), is(notNullValue()));
 	}
-
 
 	@Test
 	public void insertsSimpleEntityCorrectly() throws Exception {
 
 		Person person = new Person("Mark");
 		person.setAge(35);
-		template.insert(person).get();
+		template.insert(person).block();
 
-		TestSubscriber testSubscriber = new TestSubscriber();
+		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query(Criteria.where("_id").is(person.getId())), Person.class);
 		flux.subscribe(testSubscriber);
 
@@ -198,9 +196,9 @@ public class ReactiveMongoTemplateTests {
 
 		Person person = new Person("Homer");
 		person.setAge(35);
-		template.insert(person, "people").get();
+		template.insert(person, "people").block();
 
-		TestSubscriber testSubscriber = new TestSubscriber();
+		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query(Criteria.where("_id").is(person.getId())), Person.class, "people");
 		flux.subscribe(testSubscriber);
 
@@ -213,14 +211,14 @@ public class ReactiveMongoTemplateTests {
 
 		List<Person> persons = Arrays.asList(new Person("Dick", 22), new Person("Harry", 23), new Person("Tom", 21));
 
-		template.insertAll(persons).next().get();
+		template.insertAll(persons).next().block();
 
-		TestSubscriber testSubscriber = new TestSubscriber();
+		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query().with(new Sort(new Order("firstname"))), Person.class);
 		flux.subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(3);
-		testSubscriber.assertValues(persons.toArray());
+		testSubscriber.assertValues(persons.toArray(new Person[persons.size()]));
 	}
 
 	@Test
@@ -228,14 +226,14 @@ public class ReactiveMongoTemplateTests {
 
 		List<Person> persons = Arrays.asList(new Person("Dick", 22), new Person("Harry", 23), new Person("Tom", 21));
 
-		template.insert(persons, "people").next().get();
+		template.insert(persons, "people").next().block();
 
-		TestSubscriber testSubscriber = new TestSubscriber();
+		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query().with(new Sort(new Order("firstname"))), Person.class, "people");
 		flux.subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(3);
-		testSubscriber.assertValues(persons.toArray());
+		testSubscriber.assertValues(persons.toArray(new Person[persons.size()]));
 	}
 
 	@Test
@@ -243,16 +241,15 @@ public class ReactiveMongoTemplateTests {
 
 		List<Person> persons = Arrays.asList(new Person("Dick", 22), new Person("Harry", 23), new Person("Tom", 21));
 
-		template.insert(persons, Person.class).next().get();
+		template.insert(persons, Person.class).next().block();
 
-		TestSubscriber testSubscriber = new TestSubscriber();
+		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query().with(new Sort(new Order("firstname"))), Person.class);
 		flux.subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(3);
-		testSubscriber.assertValues(persons.toArray());
+		testSubscriber.assertValues(persons.toArray(new Person[persons.size()]));
 	}
-
 
 	@Test
 	public void testAddingToList() {
@@ -260,18 +257,18 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList p = new PersonWithAList();
 		p.setFirstName("Sven");
 		p.setAge(22);
-		template.insert(p).get();
+		template.insert(p).block();
 
 		Query q1 = new Query(Criteria.where("id").is(p.getId()));
-		PersonWithAList p2 = template.findOne(q1, PersonWithAList.class).get();
+		PersonWithAList p2 = template.findOne(q1, PersonWithAList.class).block();
 		assertThat(p2, notNullValue());
 		assertThat(p2.getWishList().size(), is(0));
 
 		p2.addToWishList("please work!");
 
-		template.save(p2).get();
+		template.save(p2).block();
 
-		PersonWithAList p3 = template.findOne(q1, PersonWithAList.class).get();
+		PersonWithAList p3 = template.findOne(q1, PersonWithAList.class).block();
 		assertThat(p3, notNullValue());
 		assertThat(p3.getWishList().size(), is(1));
 
@@ -280,9 +277,9 @@ public class ReactiveMongoTemplateTests {
 		p.setAge(21);
 
 		p3.addFriend(f);
-		template.save(p3).get();
+		template.save(p3).block();
 
-		PersonWithAList p4 = template.findOne(q1, PersonWithAList.class).get();
+		PersonWithAList p4 = template.findOne(q1, PersonWithAList.class).block();
 		assertThat(p4, notNullValue());
 		assertThat(p4.getWishList().size(), is(1));
 		assertThat(p4.getFriends().size(), is(1));
@@ -294,22 +291,22 @@ public class ReactiveMongoTemplateTests {
 		PersonWithAList p = new PersonWithAList();
 		p.setFirstName("Sven");
 		p.setAge(22);
-		template.insert(p).get();
+		template.insert(p).block();
 
 		PersonWithAList p2 = new PersonWithAList();
 		p2.setFirstName("Erik");
 		p2.setAge(21);
-		template.insert(p2).get();
+		template.insert(p2).block();
 
 		PersonWithAList p3 = new PersonWithAList();
 		p3.setFirstName("Mark");
 		p3.setAge(40);
-		template.insert(p3).get();
+		template.insert(p3).block();
 
 		// test query with a sort
 		Query q2 = new Query(Criteria.where("age").gt(10));
 		q2.with(new Sort(Direction.DESC, "age"));
-		PersonWithAList p5 = template.findOne(q2, PersonWithAList.class).get();
+		PersonWithAList p5 = template.findOne(q2, PersonWithAList.class).block();
 		assertThat(p5.getFirstName(), is("Mark"));
 	}
 
@@ -321,11 +318,11 @@ public class ReactiveMongoTemplateTests {
 
 		Person person = new Person("Oliver2");
 		person.setAge(25);
-		mongoTemplate.insert(person).get();
+		mongoTemplate.insert(person).block();
 
 		Query q = new Query(Criteria.where("BOGUS").gt(22));
 		Update u = new Update().set("firstName", "Sven");
-		mongoTemplate.updateFirst(q, u, Person.class).get();
+		mongoTemplate.updateFirst(q, u, Person.class).block();
 	}
 
 	@Test
@@ -337,10 +334,10 @@ public class ReactiveMongoTemplateTests {
 		Person person = new Person(new ObjectId(), "Amol");
 		person.setAge(28);
 
-		template.insert(person).get();
+		template.insert(person).block();
 
 		try {
-			template.insert(person).get();
+			template.insert(person).block();
 			fail("Expected DataIntegrityViolationException!");
 		} catch (DataIntegrityViolationException e) {
 			assertThat(e.getMessage(), containsString("E11000 duplicate key error"));
@@ -357,7 +354,7 @@ public class ReactiveMongoTemplateTests {
 		Person person = new Person(id, "Amol");
 		person.setAge(28);
 
-		template.insert(person).get();
+		template.insert(person).block();
 
 		thrown.expect(DataIntegrityViolationException.class);
 		thrown.expectMessage("array");
@@ -366,7 +363,7 @@ public class ReactiveMongoTemplateTests {
 
 		Query query = new Query(Criteria.where("firstName").is("Amol"));
 		Update upd = new Update().push("age", 29);
-		template.updateFirst(query, upd, Person.class).get();
+		template.updateFirst(query, upd, Person.class).block();
 	}
 
 	@Test
@@ -386,39 +383,40 @@ public class ReactiveMongoTemplateTests {
 		records.add(person);
 		records.add(person);
 
-		template.insertAll(records).next().get();
+		template.insertAll(records).next().block();
 	}
 
 	@Test
 	public void testFindAndUpdate() {
 
-		template.insertAll(Arrays.asList(new Person("Tom", 21), new Person("Dick", 22), new Person("Harry", 23))).next().get();
+		template.insertAll(Arrays.asList(new Person("Tom", 21), new Person("Dick", 22), new Person("Harry", 23))).next()
+				.block();
 
 		Query query = new Query(Criteria.where("firstName").is("Harry"));
 		Update update = new Update().inc("age", 1);
 
-		Person p = template.findAndModify(query, update, Person.class).get(); // return old
+		Person p = template.findAndModify(query, update, Person.class).block(); // return old
 		assertThat(p.getFirstName(), is("Harry"));
 		assertThat(p.getAge(), is(23));
-		p = template.findOne(query, Person.class).get();
+		p = template.findOne(query, Person.class).block();
 		assertThat(p.getAge(), is(24));
 
-		p = template.findAndModify(query, update, Person.class, "person").get();
+		p = template.findAndModify(query, update, Person.class, "person").block();
 		assertThat(p.getAge(), is(24));
-		p = template.findOne(query, Person.class).get();
+		p = template.findOne(query, Person.class).block();
 		assertThat(p.getAge(), is(25));
 
-		p = template.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), Person.class).get();
+		p = template.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), Person.class).block();
 		assertThat(p.getAge(), is(26));
 
-		p = template.findAndModify(query, update, null, Person.class, "person").get();
+		p = template.findAndModify(query, update, null, Person.class, "person").block();
 		assertThat(p.getAge(), is(26));
-		p = template.findOne(query, Person.class).get();
+		p = template.findOne(query, Person.class).block();
 		assertThat(p.getAge(), is(27));
 
 		Query query2 = new Query(Criteria.where("firstName").is("Mary"));
 		p = template.findAndModify(query2, update, new FindAndModifyOptions().returnNew(true).upsert(true), Person.class)
-				.get();
+				.block();
 		assertThat(p.getFirstName(), is("Mary"));
 		assertThat(p.getAge(), is(1));
 	}
@@ -429,17 +427,17 @@ public class ReactiveMongoTemplateTests {
 		Sample spring = new Sample("100", "spring");
 		Sample data = new Sample("200", "data");
 		Sample mongodb = new Sample("300", "mongodb");
-		template.insert(Arrays.asList(spring, data, mongodb), Sample.class).next().get();
+		template.insert(Arrays.asList(spring, data, mongodb), Sample.class).next().block();
 
 		Query qry = query(where("field").in("spring", "mongodb"));
 
-		TestSubscriber<Sample> testSubscriber = new TestSubscriber<>();
+		TestSubscriber<Sample> testSubscriber = TestSubscriber.create();
 		template.findAllAndRemove(qry, Sample.class).subscribe(testSubscriber);
 
 		testSubscriber.awaitAndAssertNextValueCount(2);
 		testSubscriber.assertValues(spring, mongodb);
 
-		assertThat(template.findOne(new Query(), Sample.class).get(), is(equalTo(data)));
+		assertThat(template.findOne(new Query(), Sample.class).block(), is(equalTo(data)));
 	}
 
 	@Test(expected = OptimisticLockingFailureException.class)
@@ -449,10 +447,10 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeInteger person = new PersonWithVersionPropertyOfTypeInteger();
 		person.age = 29;
 		person.firstName = "Patryk";
-		template.save(person).get();
+		template.save(person).block();
 
-		List<PersonWithVersionPropertyOfTypeInteger> result = Flux.from(template
-				.findAll(PersonWithVersionPropertyOfTypeInteger.class)).toList().get();
+		List<PersonWithVersionPropertyOfTypeInteger> result = Flux
+				.from(template.findAll(PersonWithVersionPropertyOfTypeInteger.class)).collectList().block();
 
 		assertThat(result, hasSize(1));
 		assertThat(result.get(0).version, is(0));
@@ -461,11 +459,11 @@ public class ReactiveMongoTemplateTests {
 		person = result.get(0);
 		person.firstName = "Patryk2";
 
-		template.save(person).get();
+		template.save(person).block();
 
 		assertThat(person.version, is(1));
 
-		result = Flux.from(template.findAll(PersonWithVersionPropertyOfTypeInteger.class)).toList().get();
+		result = Flux.from(template.findAll(PersonWithVersionPropertyOfTypeInteger.class)).collectList().block();
 
 		assertThat(result, hasSize(1));
 		assertThat(result.get(0).version, is(1));
@@ -474,7 +472,7 @@ public class ReactiveMongoTemplateTests {
 		person.version = 0;
 		person.firstName = "Patryk3";
 
-		template.save(person).get();
+		template.save(person).block();
 	}
 
 	@Test
@@ -500,15 +498,15 @@ public class ReactiveMongoTemplateTests {
 	public void removesObjectFromExplicitCollection() {
 
 		String collectionName = "explicit";
-		template.remove(new Query(), collectionName).get();
+		template.remove(new Query(), collectionName).block();
 
 		PersonWithConvertedId person = new PersonWithConvertedId();
 		person.name = "Dave";
-		template.save(person, collectionName).get();
-		assertThat(template.findAll(PersonWithConvertedId.class, collectionName).next().get(), is(notNullValue()));
+		template.save(person, collectionName).block();
+		assertThat(template.findAll(PersonWithConvertedId.class, collectionName).next().block(), is(notNullValue()));
 
-		template.remove(person, collectionName).get();
-		assertThat(template.findAll(PersonWithConvertedId.class, collectionName).next().get(), is(nullValue()));
+		template.remove(person, collectionName).block();
+		assertThat(template.findAll(PersonWithConvertedId.class, collectionName).next().block(), is(nullValue()));
 	}
 
 	@Test
@@ -517,12 +515,12 @@ public class ReactiveMongoTemplateTests {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("key", "value");
 
-		template.save(map, "maps").get();
+		template.save(map, "maps").block();
 	}
 
 	@Test(expected = MappingException.class)
 	public void savesMongoPrimitiveObjectCorrectly() {
-		template.save(new Object(), "collection").get();
+		template.save(new Object(), "collection").block();
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -534,7 +532,7 @@ public class ReactiveMongoTemplateTests {
 	public void savesPlainDbObjectCorrectly() {
 
 		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
-		template.save(dbObject, "collection").get();
+		template.save(dbObject, "collection").block();
 
 		assertThat(dbObject.containsKey("_id"), is(true));
 	}
@@ -543,30 +541,30 @@ public class ReactiveMongoTemplateTests {
 	public void rejectsPlainObjectWithOutExplicitCollection() {
 
 		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
-		template.save(dbObject, "collection").get();
+		template.save(dbObject, "collection").block();
 
-		template.findById(dbObject.get("_id"), org.bson.Document.class).get();
+		template.findById(dbObject.get("_id"), org.bson.Document.class).block();
 	}
 
 	@Test
 	public void readsPlainDbObjectById() {
 
 		org.bson.Document dbObject = new org.bson.Document("foo", "bar");
-		template.save(dbObject, "collection").get();
+		template.save(dbObject, "collection").block();
 
-		org.bson.Document result = template.findById(dbObject.get("_id"), org.bson.Document.class, "collection").get();
+		org.bson.Document result = template.findById(dbObject.get("_id"), org.bson.Document.class, "collection").block();
 		assertThat(result.get("foo"), is(dbObject.get("foo")));
 		assertThat(result.get("_id"), is(dbObject.get("_id")));
 	}
 
 	@Test
 	public void writesPlainString() {
-		template.save("{ 'foo' : 'bar' }", "collection").get();
+		template.save("{ 'foo' : 'bar' }", "collection").block();
 	}
 
 	@Test(expected = MappingException.class)
 	public void rejectsNonJsonStringForSave() {
-		template.save("Foobar!", "collection").get();
+		template.save("Foobar!", "collection").block();
 	}
 
 	@Test
@@ -575,7 +573,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeInteger person = new PersonWithVersionPropertyOfTypeInteger();
 		person.firstName = "Dave";
 
-		template.insert(person).get();
+		template.insert(person).block();
 
 		assertThat(person.version, is(0));
 	}
@@ -586,7 +584,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeInteger person = new PersonWithVersionPropertyOfTypeInteger();
 		person.firstName = "Dave";
 
-		template.insertAll(Arrays.asList(person)).next().get();
+		template.insertAll(Arrays.asList(person)).next().block();
 
 		assertThat(person.version, is(0));
 	}
@@ -594,8 +592,9 @@ public class ReactiveMongoTemplateTests {
 	@Test
 	public void queryCantBeNull() {
 
-		List<PersonWithIdPropertyOfTypeObjectId> result = Flux.from(template.findAll(PersonWithIdPropertyOfTypeObjectId.class)).toList().get();
-		assertThat(template.find(null, PersonWithIdPropertyOfTypeObjectId.class).toList().get(), is(result));
+		List<PersonWithIdPropertyOfTypeObjectId> result = Flux
+				.from(template.findAll(PersonWithIdPropertyOfTypeObjectId.class)).collectList().block();
+		assertThat(template.find(null, PersonWithIdPropertyOfTypeObjectId.class).collectList().block(), is(result));
 	}
 
 	@Test
@@ -604,10 +603,10 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeInteger person = new PersonWithVersionPropertyOfTypeInteger();
 		person.firstName = "Dave";
 
-		template.save(person, "personX").get();
+		template.save(person, "personX").block();
 		assertThat(person.version, is(0));
 
-		template.save(person, "personX").get();
+		template.save(person, "personX").block();
 		assertThat(person.version, is(1));
 	}
 
@@ -617,7 +616,7 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeLong person = new PersonWithVersionPropertyOfTypeLong();
 		person.firstName = "Dave";
 
-		template.save(person).get();
+		template.save(person).block();
 		assertThat(person.version, is(0L));
 	}
 
@@ -626,18 +625,18 @@ public class ReactiveMongoTemplateTests {
 
 		ReactiveMongoTemplate template = new ReactiveMongoTemplate(factory);
 		template.setWriteResultChecking(WriteResultChecking.EXCEPTION);
-		template.indexOps(Person.class).ensureIndex(new Index().on("firstName", Direction.DESC).unique()).get();
+		template.indexOps(Person.class).ensureIndex(new Index().on("firstName", Direction.DESC).unique()).block();
 
 		Person person = new Person(new ObjectId(), "Amol");
 		person.setAge(28);
 
-		template.save(person).get();
+		template.save(person).block();
 
 		person = new Person(new ObjectId(), "Amol");
 		person.setAge(28);
 
 		try {
-			template.save(person).get();
+			template.save(person).block();
 			fail("Expected DataIntegrityViolationException!");
 		} catch (DataIntegrityViolationException e) {
 			assertThat(e.getMessage(), containsString("E11000 duplicate key error"));
@@ -652,24 +651,24 @@ public class ReactiveMongoTemplateTests {
 		PersonWithVersionPropertyOfTypeInteger person = new PersonWithVersionPropertyOfTypeInteger();
 		person.firstName = "Dave";
 
-		template.save(person).get();
+		template.save(person).block();
 		assertThat(person.version, is(0));
 
 		person.version = null;
-		template.save(person).get();
+		template.save(person).block();
 	}
 
 	@Test
 	public void countAndFindWithoutTypeInformation() {
 
 		Person person = new Person();
-		template.save(person).get();
+		template.save(person).block();
 
 		Query query = query(where("_id").is(person.getId()));
 		String collectionName = template.getCollectionName(Person.class);
 
-		assertThat(Flux.from(template.find(query, HashMap.class, collectionName)).toList().get(), hasSize(1));
-		assertThat(template.count(query, collectionName).get(), is(1L));
+		assertThat(Flux.from(template.find(query, HashMap.class, collectionName)).collectList().block(), hasSize(1));
+		assertThat(template.count(query, collectionName).block(), is(1L));
 	}
 
 	@Test
@@ -679,13 +678,13 @@ public class ReactiveMongoTemplateTests {
 		person.firstname = "Dave";
 		person.lastname = "Matthews";
 
-		template.save(person).get();
+		template.save(person).block();
 		assertThat(person.id, is(notNullValue()));
 
 		person.lastname = null;
-		template.save(person).get();
+		template.save(person).block();
 
-		person = template.findOne(query(where("id").is(person.id)), VersionedPerson.class).get();
+		person = template.findOne(query(where("id").is(person.id)), VersionedPerson.class).block();
 		assertThat(person.lastname, is(nullValue()));
 	}
 
@@ -693,12 +692,12 @@ public class ReactiveMongoTemplateTests {
 	public void nullsValuesForUpdatesOfUnversionedEntity() {
 
 		Person person = new Person("Dave");
-		template.save(person).get();
+		template.save(person).block();
 
 		person.setFirstName(null);
-		template.save(person).get();
+		template.save(person).block();
 
-		person = template.findOne(query(where("id").is(person.getId())), Person.class).get();
+		person = template.findOne(query(where("id").is(person.getId())), Person.class).block();
 		assertThat(person.getFirstName(), is(nullValue()));
 	}
 
@@ -707,9 +706,9 @@ public class ReactiveMongoTemplateTests {
 
 		org.bson.Document dbObject = new org.bson.Document().append("first", "first").append("second", "second");
 
-		template.save(dbObject, "collection").get();
+		template.save(dbObject, "collection").block();
 
-		org.bson.Document result = template.findAll(org.bson.Document.class, "collection").next().get();
+		org.bson.Document result = template.findAll(org.bson.Document.class, "collection").next().block();
 		assertThat(result.containsKey("first"), is(true));
 	}
 
@@ -717,13 +716,14 @@ public class ReactiveMongoTemplateTests {
 	public void executesExistsCorrectly() {
 
 		Sample sample = new Sample();
-		template.save(sample).get();
+		template.save(sample).block();
 
 		Query query = query(where("id").is(sample.id));
 
-		assertThat(template.exists(query, Sample.class).get(), is(true));
-		assertThat(template.exists(query(where("_id").is(sample.id)), template.getCollectionName(Sample.class)).get(), is(true));
-		assertThat(template.exists(query, Sample.class, template.getCollectionName(Sample.class)).get(), is(true));
+		assertThat(template.exists(query, Sample.class).block(), is(true));
+		assertThat(template.exists(query(where("_id").is(sample.id)), template.getCollectionName(Sample.class)).block(),
+				is(true));
+		assertThat(template.exists(query, Sample.class, template.getCollectionName(Sample.class)).block(), is(true));
 	}
 
 	@Data

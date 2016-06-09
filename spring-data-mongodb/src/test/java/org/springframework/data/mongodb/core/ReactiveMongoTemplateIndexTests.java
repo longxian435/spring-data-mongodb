@@ -44,6 +44,7 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import lombok.Data;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import static reactor.core.publisher.Signal.subscribe;
 import reactor.core.test.TestSubscriber;
 
 /**
@@ -77,13 +78,13 @@ public class ReactiveMongoTemplateIndexTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().get();
+			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().block();
 			mongoVersion = Version.parse(result.get("version").toString());
 		}
 	}
 
 	private void cleanDb() {
-		template.dropCollection(Person.class).get();
+		template.dropCollection(Person.class).block();
 	}
 
 	@Test
@@ -97,10 +98,10 @@ public class ReactiveMongoTemplateIndexTests {
 		p2.setAge(40);
 		template.insert(p2);
 
-		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).get();
+		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).block();
 
 		MongoCollection<Document> coll = template.getCollection(template.getCollectionName(Person.class));
-		List<Document> indexInfo = Flux.from(coll.listIndexes()).toList().get();
+		List<Document> indexInfo = Flux.from(coll.listIndexes()).collectList().block();
 
 		assertThat(indexInfo.size(), is(2));
 		Object indexKey = null;
@@ -129,11 +130,11 @@ public class ReactiveMongoTemplateIndexTests {
 
 		Person p1 = new Person("Oliver");
 		p1.setAge(25);
-		template.insert(p1).get();
+		template.insert(p1).block();
 
-		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).get();
+		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).block();
 
-		List<IndexInfo> indexInfoList = Flux.from(template.indexOps(Person.class).getIndexInfo()).toList().get();
+		List<IndexInfo> indexInfoList = Flux.from(template.indexOps(Person.class).getIndexInfo()).collectList().block();
 		assertThat(indexInfoList.size(), is(2));
 
 		IndexInfo ii = indexInfoList.get(1);
@@ -158,17 +159,16 @@ public class ReactiveMongoTemplateIndexTests {
 
 		String command = "db." + template.getCollectionName(Person.class)
 				+ ".createIndex({'age':-1}, {'unique':true, 'sparse':true}), 1";
-		template.indexOps(Person.class).dropAllIndexes().get();
+		template.indexOps(Person.class).dropAllIndexes().block();
 
-		TestSubscriber<IndexInfo> subscriber = new TestSubscriber<>();
-		template.indexOps(Person.class).getIndexInfo().subscribe(subscriber);
+		TestSubscriber<IndexInfo> subscriber = TestSubscriber.subscribe(template.indexOps(Person.class).getIndexInfo());
 		subscriber.await().assertComplete().assertNoValues();
 
-		Mono.from(factory.getMongoDatabase().runCommand(new org.bson.Document("eval", command))).get();
+		Mono.from(factory.getMongoDatabase().runCommand(new org.bson.Document("eval", command))).block();
 
 		ListIndexesPublisher<Document> listIndexesPublisher = template
 				.getCollection(template.getCollectionName(Person.class)).listIndexes();
-		List<Document> indexInfo = Flux.from(listIndexesPublisher).toList().get();
+		List<Document> indexInfo = Flux.from(listIndexesPublisher).collectList().block();
 		org.bson.Document indexKey = null;
 		boolean unique = false;
 
@@ -183,7 +183,7 @@ public class ReactiveMongoTemplateIndexTests {
 		assertThat(indexKey, hasEntry("age", -1D));
 		assertThat(unique, is(true));
 
-		List<IndexInfo> indexInfos = template.indexOps(Person.class).getIndexInfo().toList().get();
+		List<IndexInfo> indexInfos = template.indexOps(Person.class).getIndexInfo().collectList().block();
 
 		IndexInfo info = indexInfos.get(1);
 		assertThat(info.isUnique(), is(true));
