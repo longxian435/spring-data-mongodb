@@ -521,7 +521,7 @@ public class UpdateTests {
 		Update update = new Update().max("key", 10);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$max", new BasicDBObject("key", 10)).get()));
+				equalTo(new Document("$max", new Document("key", 10))));
 	}
 
 	/**
@@ -533,7 +533,7 @@ public class UpdateTests {
 		Update update = new Update().min("key", 10);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$min", new BasicDBObject("key", 10)).get()));
+				equalTo(new Document("$min", new Document("key", 10))));
 	}
 
 	/**
@@ -546,7 +546,7 @@ public class UpdateTests {
 		update.max("key", 99);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$max", new BasicDBObject("key", 99)).get()));
+				equalTo(new Document("$max", new Document("key", 99))));
 	}
 
 	/**
@@ -559,7 +559,7 @@ public class UpdateTests {
 		update.min("key", 99);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$min", new BasicDBObject("key", 99)).get()));
+				equalTo(new Document("$min", new Document("key", 99))));
 	}
 
 	/**
@@ -572,7 +572,7 @@ public class UpdateTests {
 		Update update = new Update().max("key", date);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$max", new BasicDBObject("key", date)).get()));
+				equalTo(new Document("$max", new Document("key", date))));
 	}
 
 	/**
@@ -585,6 +585,6 @@ public class UpdateTests {
 		Update update = new Update().min("key", date);
 
 		assertThat(update.getUpdateObject(),
-				equalTo(new BasicDBObjectBuilder().add("$min", new BasicDBObject("key", date)).get()));
+				equalTo(new Document("$min", new Document("key", date))));
 	}
 }

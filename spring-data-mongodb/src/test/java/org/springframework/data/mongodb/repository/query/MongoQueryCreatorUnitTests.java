@@ -463,7 +463,7 @@ public class MongoQueryCreatorUnitTests {
 		MongoQueryCreator creator = new MongoQueryCreator(tree, getAccessor(converter, "thew"), context);
 		Query query = creator.createQuery();
 
-		assertThat(query.getQueryObject(), is(query(where("username").not().regex(".*thew.*")).getQueryObject()));
+		assertThat(query.getQueryObject().toJson(), is(query(where("username").not().regex(".*thew.*")).getQueryObject().toJson()));
 	}
 
 	/**
@@ -680,8 +680,8 @@ public class MongoQueryCreatorUnitTests {
 
 		Query query = new MongoQueryCreator(tree, accessor, context).createQuery();
 
-		assertThat(query.getQueryObject(),
-				is(query(where("username").not().regex(".*\\Qfire.fight+\\E.*")).getQueryObject()));
+		assertThat(query.getQueryObject().toJson(),
+				is(query(where("username").not().regex(".*\\Qfire.fight+\\E.*")).getQueryObject().toJson()));
 	}
 
 	/**
@@ -695,8 +695,8 @@ public class MongoQueryCreatorUnitTests {
 
 		Query query = new MongoQueryCreator(tree, accessor, context).createQuery();
 
-		assertThat(query.getQueryObject(),
-				is(query(where("username").not().regex(".*\\Qsteel.heart+\\E")).getQueryObject()));
+		assertThat(query.getQueryObject().toJson(),
+				is(query(where("username").not().regex(".*\\Qsteel.heart+\\E")).getQueryObject().toJson()));
 	}
 
 	/**
@@ -709,7 +709,7 @@ public class MongoQueryCreatorUnitTests {
 		MongoQueryCreator creator = new MongoQueryCreator(tree, getAccessor(converter, "cala.mity+*"), context);
 		Query query = creator.createQuery();
 
-		assertThat(query.getQueryObject(), is(query(where("username").not().regex("\\Qcala.mity+\\E.*")).getQueryObject()));
+		assertThat(query.getQueryObject().toJson(), is(query(where("username").not().regex("\\Qcala.mity+\\E.*")).getQueryObject().toJson()));
 	}
 
 	/**
@@ -722,7 +722,7 @@ public class MongoQueryCreatorUnitTests {
 		ConvertingParameterAccessor accessor = getAccessor(converter, "*");
 
 		Query query = new MongoQueryCreator(tree, accessor, context).createQuery();
-		assertThat(query.getQueryObject(), is(query(where("username").not().regex(".*")).getQueryObject()));
+		assertThat(query.getQueryObject().toJson(), is(query(where("username").not().regex(".*")).getQueryObject().toJson()));
 	}
 
 	interface PersonRepository extends Repository<Person, Long> {

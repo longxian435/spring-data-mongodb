@@ -23,8 +23,6 @@ import org.bson.Document;
 import org.junit.Test;
 import org.springframework.data.mongodb.core.DBObjectTestUtils;
 
-import com.mongodb.DBObject;
-
 /**
  * Unit tests for {@link UnwindOperation}.
  *

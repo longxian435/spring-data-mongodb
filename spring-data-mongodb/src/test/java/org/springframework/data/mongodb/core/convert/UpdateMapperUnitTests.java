@@ -403,13 +403,13 @@ public class UpdateMapperUnitTests {
 		Document key = getAsDocument(push, "key");
 
 		assertThat(key.containsKey("$slice"), is(true));
-		assertThat(key.get("$slice"), is(5));
+		assertThat((Integer) key.get("$slice"), is(5));
 		assertThat(key.containsKey("$each"), is(true));
 
 		Document key2 = getAsDocument(push, "key-2");
 
 		assertThat(key2.containsKey("$slice"), is(true));
-		assertThat(key2.get("$slice"), is(-2));
+		assertThat((Integer) key2.get("$slice"), is(-2));
 		assertThat(key2.containsKey("$each"), is(true));
 	}
 
@@ -936,7 +936,7 @@ public class UpdateMapperUnitTests {
 		Document mappedUpdate = mapper.getMappedObject(update.getUpdateObject(),
 				context.getPersistentEntity(SimpleValueHolder.class));
 
-		assertThat(mappedUpdate, isBsonObject().containing("$min", new BasicDBObject("minfield", 10)));
+		assertThat(mappedUpdate, isBsonObject().containing("$min", new Document("minfield", 10)));
 	}
 
 	/**
@@ -949,7 +949,7 @@ public class UpdateMapperUnitTests {
 		Document mappedUpdate = mapper.getMappedObject(update.getUpdateObject(),
 				context.getPersistentEntity(SimpleValueHolder.class));
 
-		assertThat(mappedUpdate, isBsonObject().containing("$max", new BasicDBObject("maxfield", 999)));
+		assertThat(mappedUpdate, isBsonObject().containing("$max", new Document("maxfield", 999)));
 	}
 
 	/**
@@ -973,10 +973,14 @@ public class UpdateMapperUnitTests {
 		UpdateMapper mapper = new UpdateMapper(converter);
 
 		Update update = new Update().set("enumAsMapKey", Collections.singletonMap(Allocation.AVAILABLE, 100));
-		Document result = mapper.getMappedObject(update.getUpdateObject(),
+		Document mappedUpdate = mapper.getMappedObject(update.getUpdateObject(),
 				mappingContext.getPersistentEntity(ClassWithEnum.class));
 
-		assertThat(result, isBsonObject().containing("$set.enumAsMapKey.V", 100));
+		Document $set = DBObjectTestUtils.getAsDocument(mappedUpdate, "$set");
+		assertThat($set.containsKey("enumAsMapKey"), is(true));
+
+		Document enumAsMapKey = $set.get("enumAsMapKey", Document.class);
+		assertThat(enumAsMapKey.get("AVAILABLE"), is(100));
 	}
 
 	static class DomainTypeWrappingConcreteyTypeHavingListOfInterfaceTypeAttributes {

@@ -33,8 +33,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import org.bson.Document;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -253,7 +251,7 @@ public class AggregationTests {
 
 		assumeTrue(mongoVersion.isGreaterThanOrEqualTo(THREE_DOT_TWO));
 
-		MongoCollection coll = mongoTemplate.getCollection(INPUT_COLLECTION);
+		MongoCollection<Document> coll = mongoTemplate.getCollection(INPUT_COLLECTION);
 
 		coll.insertOne(createDocument("Doc1", "spring", "mongodb", "nosql"));
 		coll.insertOne(createDocument("Doc2"));
@@ -284,7 +282,7 @@ public class AggregationTests {
 
 		assumeTrue(mongoVersion.isGreaterThanOrEqualTo(THREE_DOT_TWO));
 
-		MongoCollection coll = mongoTemplate.getCollection(INPUT_COLLECTION);
+		MongoCollection<Document> coll = mongoTemplate.getCollection(INPUT_COLLECTION);
 
 		coll.insertOne(createDocument("Doc1", "spring", "mongodb", "nosql"));
 		coll.insertOne(createDocument("Doc2"));
@@ -523,18 +521,18 @@ public class AggregationTests {
 
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(3));
 
-		DBObject first = result.getMappedResults().get(0);
+		Document first = result.getMappedResults().get(0);
 		assertThat(first.get("_id"), is((Object) 1));
 		assertThat(first.get("discount"), is((Object) 30));
 
-		DBObject second = result.getMappedResults().get(1);
+		Document second = result.getMappedResults().get(1);
 		assertThat(second.get("_id"), is((Object) 2));
 		assertThat(second.get("discount"), is((Object) 20));
 
-		DBObject third = result.getMappedResults().get(2);
+		Document third = result.getMappedResults().get(2);
 		assertThat(third.get("_id"), is((Object) 3));
 		assertThat(third.get("discount"), is((Object) 30));
 	}
@@ -571,14 +569,14 @@ public class AggregationTests {
 
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(3));
 
-		DBObject first = result.getMappedResults().get(0);
+		Document first = result.getMappedResults().get(0);
 		assertThat(first.get("_id"), is((Object) 1));
 		assertThat(first.get("description"), is((Object) "product 1"));
 
-		DBObject second = result.getMappedResults().get(1);
+		Document second = result.getMappedResults().get(1);
 		assertThat(second.get("_id"), is((Object) 2));
 		assertThat(second.get("description"), is((Object) "Unspecified"));
 	}
@@ -600,10 +598,10 @@ public class AggregationTests {
 		assertThat(aggregation, is(notNullValue()));
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(29467));
 
-		DBObject firstZipInfoStats = result.getMappedResults().get(0);
+		Document firstZipInfoStats = result.getMappedResults().get(0);
 		assertThat(firstZipInfoStats.get("largePopulation"), is((Object) false));
 		assertThat(firstZipInfoStats.get("population"), is((Object) 6055));
 	}
@@ -626,10 +624,10 @@ public class AggregationTests {
 		assertThat(aggregation, is(notNullValue()));
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(29467));
 
-		DBObject firstZipInfoStats = result.getMappedResults().get(0);
+		Document firstZipInfoStats = result.getMappedResults().get(0);
 		assertThat(firstZipInfoStats.get("size"), is((Object) "small"));
 		assertThat(firstZipInfoStats.get("population"), is((Object) 6055));
 	}
@@ -651,13 +649,13 @@ public class AggregationTests {
 
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(2));
 
-		DBObject id = result.getMappedResults().get(0);
+		Document id = result.getMappedResults().get(0);
 		assertThat((String) id.get("caption"), is(equalTo("caption")));
 
-		DBObject idonly = result.getMappedResults().get(1);
+		Document idonly = result.getMappedResults().get(1);
 		assertThat((String) idonly.get("caption"), is(equalTo("unknown")));
 	}
 
@@ -678,13 +676,13 @@ public class AggregationTests {
 
 		assertThat(aggregation.toString(), is(notNullValue()));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(aggregation, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(aggregation, Document.class);
 		assertThat(result.getMappedResults().size(), is(2));
 
-		DBObject id = result.getMappedResults().get(0);
+		Document id = result.getMappedResults().get(0);
 		assertThat((String) id.get("caption"), is(equalTo("caption")));
 
-		DBObject idonly = result.getMappedResults().get(1);
+		Document idonly = result.getMappedResults().get(1);
 		assertThat((String) idonly.get("caption"), is(equalTo("idonly")));
 	}
 
@@ -717,15 +715,15 @@ public class AggregationTests {
 				group("make").avg(new ConditionalOperator(Criteria.where("year").gte(2012), 1, 9000)).as("score"),
 				sort(ASC, "make"));
 
-		AggregationResults<DBObject> result = mongoTemplate.aggregate(agg, DBObject.class);
+		AggregationResults<Document> result = mongoTemplate.aggregate(agg, Document.class);
 
 		assertThat(result.getMappedResults(), hasSize(2));
 
-		DBObject meh = result.getMappedResults().get(0);
+		Document meh = result.getMappedResults().get(0);
 		assertThat((String) meh.get("_id"), is(equalTo("meh")));
 		assertThat(((Number) meh.get("score")).longValue(), is(equalTo(1L)));
 
-		DBObject good = result.getMappedResults().get(1);
+		Document good = result.getMappedResults().get(1);
 		assertThat((String) good.get("_id"), is(equalTo("good")));
 		assertThat(((Number) good.get("score")).longValue(), is(equalTo(9000L)));
 	}
@@ -1453,7 +1451,7 @@ public class AggregationTests {
 				sort(DESC, "count"), //
 				out(tempOutCollection));
 
-		AggregationResults<DBObject> results = mongoTemplate.aggregate(agg, DBObject.class);
+		AggregationResults<Document> results = mongoTemplate.aggregate(agg, Document.class);
 		assertThat(results.getMappedResults(), is(empty()));
 
 		List<Document> list = mongoTemplate.findAll(Document.class, tempOutCollection);

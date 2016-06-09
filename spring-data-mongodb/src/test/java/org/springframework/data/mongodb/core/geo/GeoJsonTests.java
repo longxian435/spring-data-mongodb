@@ -56,6 +56,7 @@ import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoCollection;
 
 /**
  * @author Christoph Strobl
@@ -334,13 +335,13 @@ public class GeoJsonTests {
 				new CollectionCallback<Object>() {
 
 					@Override
-					public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
+					public Object doInCollection(MongoCollection<org.bson.Document> collection) throws MongoException, DataAccessException {
 
-						Document pointRepresentation = new Document();
+						org.bson.Document pointRepresentation = new org.bson.Document();
 						pointRepresentation.put("type", "Point");
 						pointRepresentation.put("coordinates", new BasicDbListBuilder().add(0).add(0).get());
 
-						Document document = new Document();
+						org.bson.Document document = new org.bson.Document();
 						document.append("_id", "datamongo-1453");
 						document.append("geoJsonPoint", pointRepresentation);
 
@@ -364,15 +365,15 @@ public class GeoJsonTests {
 				new CollectionCallback<Object>() {
 
 					@Override
-					public Object doInCollection(MongoCollection<Document> collection) throws MongoException, DataAccessException {
+					public Object doInCollection(MongoCollection<org.bson.Document> collection) throws MongoException, DataAccessException {
 
-						Document lineStringRepresentation = new Document();
+						org.bson.Document lineStringRepresentation = new org.bson.Document();
 						lineStringRepresentation.put("type", "LineString");
 						lineStringRepresentation.put("coordinates",
 								new BasicDbListBuilder().add(new BasicDbListBuilder().add(0).add(0).get())
 										.add(new BasicDbListBuilder().add(1).add(1).get()).get());
 
-						Document document = new Document();
+						org.bson.Document document = new org.bson.Document();
 						document.append("_id", "datamongo-1453");
 						document.append("geoJsonLineString", lineStringRepresentation);
 
