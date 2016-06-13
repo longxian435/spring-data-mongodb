@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2015 the original author or authors.
+ * Copyright 2011-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.springframework.data.mongodb.core.index;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,6 @@ import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import com.mongodb.MongoException;
-import com.mongodb.client.model.IndexOptions;
 
 /**
  * Component that inspects {@link MongoPersistentEntity} instances contained in the given {@link MongoMappingContext}
@@ -53,6 +51,7 @@ import com.mongodb.client.model.IndexOptions;
  * @author Johno Crawford
  * @author Laurent Canet
  * @author Christoph Strobl
+ * @author Mark Paluch
  */
 public class MongoPersistentEntityIndexCreator implements ApplicationListener<MappingContextEvent<?, ?>> {
 
@@ -146,65 +145,13 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 
 		try {
 
-			IndexOptions ops = new IndexOptions();
-
-			if (indexDefinition.getIndexOptions() != null) {
-
-				org.bson.Document indexOptions = indexDefinition.getIndexOptions();
-
-				if (indexOptions.containsKey("name")) {
-					ops = ops.name(indexOptions.get("name").toString());
-				}
-				if (indexOptions.containsKey("unique")) {
-					ops = ops.unique((Boolean) indexOptions.get("unique"));
-				}
-				// if(indexOptions.containsField("dropDuplicates")) {
-				// ops = ops.((boolean)indexOptions.get("dropDuplicates"));
-				// }
-				if (indexOptions.containsKey("sparse")) {
-					ops = ops.sparse((Boolean) indexOptions.get("sparse"));
-				}
-				if (indexOptions.containsKey("background")) {
-					ops = ops.background((Boolean) indexOptions.get("background"));
-				}
-				if (indexOptions.containsKey("expireAfterSeconds")) {
-					ops = ops.expireAfter((Long) indexOptions.get("expireAfterSeconds"), TimeUnit.SECONDS);
-				}
-				if (indexOptions.containsKey("min")) {
-					ops = ops.min(((Number) indexOptions.get("min")).doubleValue());
-				}
-				if (indexOptions.containsKey("max")) {
-					ops = ops.max(((Number) indexOptions.get("max")).doubleValue());
-				}
-				if (indexOptions.containsKey("bits")) {
-					ops = ops.bits((Integer) indexOptions.get("bits"));
-				}
-				if (indexOptions.containsKey("bucketSize")) {
-					ops = ops.bucketSize(((Number) indexOptions.get("bucketSize")).doubleValue());
-				}
-				if (indexOptions.containsKey("default_language")) {
-					ops = ops.defaultLanguage(indexOptions.get("default_language").toString());
-				}
-				if (indexOptions.containsKey("language_override")) {
-					ops = ops.languageOverride(indexOptions.get("language_override").toString());
-				}
-				if (indexOptions.containsKey("weights")) {
-					ops = ops.weights((org.bson.Document) indexOptions.get("weights"));
-				}
-
-				for (String key : indexOptions.keySet()) {
-					if (ObjectUtils.nullSafeEquals("2dsphere", indexOptions.get(key))) {
-						ops = ops.sphereVersion(2);
-					}
-				}
-			}
-
 			IndexOperations indexOperations = indexOperationsProvider.indexOps(indexDefinition.getCollection());
 			indexOperations.ensureIndex(indexDefinition);
 
 		} catch (UncategorizedMongoDbException ex) {
 
-			if (ex.getCause() instanceof MongoException &&  MongoDbErrorCodes.isDataIntegrityViolationCode(((MongoException) ex.getCause()).getCode())) {
+			if (ex.getCause() instanceof MongoException &&
+					MongoDbErrorCodes.isDataIntegrityViolationCode(((MongoException) ex.getCause()).getCode())) {
 
 				IndexInfo existingIndex = fetchIndexInformation(indexDefinition);
 				String message = "Cannot create index for '%s' in collection '%s' with keys '%s' and options '%s'.";

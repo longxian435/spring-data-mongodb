@@ -13,33 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data.mongodb.core;
 
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.mongodb.MongoDbFactory;
 
 /**
- * Temporary bridge for IndexOperationsProvider. TODO: Remove me
+ * {@link IndexOperationsProvider} to obtain {@link IndexOperations} from a given {@link MongoDbFactory}. TODO: Review
+ * me
  *
  * @author Mark Paluch
+ * @since 2.0
  */
-public class DefaultIndexOperationsProvider implements IndexOperationsProvider {
+class DefaultIndexOperationsProvider implements IndexOperationsProvider {
 
 	private final MongoDbFactory mongoDbFactory;
-	private final MongoTemplate mongoTemplate;
 
-	public DefaultIndexOperationsProvider(MongoDbFactory mongoDbFactory) {
-
+	/**
+	 * @param mongoDbFactory must not be {@literal null}.
+	 */
+	DefaultIndexOperationsProvider(MongoDbFactory mongoDbFactory) {
 		this.mongoDbFactory = mongoDbFactory;
-		this.mongoTemplate = new MongoTemplate(mongoDbFactory);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.data.mongodb.core.IndexOperationsProvider#indexOps(java.lang.String)
+	 */
 	@Override
 	public IndexOperations indexOps(String collectionName) {
-		return new DefaultIndexOperations(mongoTemplate, collectionName);
+		return new DefaultIndexOperations(mongoDbFactory, collectionName);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.springframework.data.mongodb.core.IndexOperationsProvider#getExceptionTranslator()
+	 */
 	@Override
 	public PersistenceExceptionTranslator getExceptionTranslator() {
 		return mongoDbFactory.getExceptionTranslator();

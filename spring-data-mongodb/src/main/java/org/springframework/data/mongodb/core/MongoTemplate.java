@@ -578,11 +578,11 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware, 
 	}
 
 	public IndexOperations indexOps(String collectionName) {
-		return new DefaultIndexOperations(this, collectionName);
+		return new DefaultIndexOperations(getMongoDbFactory(), collectionName);
 	}
 
 	public IndexOperations indexOps(Class<?> entityClass) {
-		return new DefaultIndexOperations(this, determineCollectionName(entityClass));
+		return new DefaultIndexOperations(getMongoDbFactory(), determineCollectionName(entityClass));
 	}
 
 	public BulkOperations bulkOps(BulkMode bulkMode, String collectionName) {

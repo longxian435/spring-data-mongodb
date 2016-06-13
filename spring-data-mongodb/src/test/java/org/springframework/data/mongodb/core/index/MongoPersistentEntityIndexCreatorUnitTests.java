@@ -60,6 +60,7 @@ import com.mongodb.client.model.IndexOptions;
  * @author Johno Crawford
  * @author Christoph Strobl
  * @author Thomas Darimont
+ * @author Mark Paluch
  */
 @RunWith(MockitoJUnitRunner.class)
 public class MongoPersistentEntityIndexCreatorUnitTests {
@@ -83,7 +84,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		when(factory.getDb()).thenReturn(db);
 		when(factory.getExceptionTranslator()).thenReturn(new MongoExceptionTranslator());
-		when(db.getCollection(collectionCaptor.capture(), eq(org.bson.Document.class))).thenReturn(collection);
+		when(db.getCollection(collectionCaptor.capture())).thenReturn(collection);
 
 		mongoTemplate = new MongoTemplate(factory);
 
@@ -209,7 +210,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(org.bson.Document.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture());
 		assertThat(collectionNameCapturer.getValue(), equalTo("wrapper"));
 	}
 
@@ -224,7 +225,7 @@ public class MongoPersistentEntityIndexCreatorUnitTests {
 
 		ArgumentCaptor<String> collectionNameCapturer = ArgumentCaptor.forClass(String.class);
 
-		verify(db, times(1)).getCollection(collectionNameCapturer.capture(), eq(org.bson.Document.class));
+		verify(db, times(1)).getCollection(collectionNameCapturer.capture());
 		assertThat(collectionNameCapturer.getValue(), equalTo("indexedDocumentWrapper"));
 	}
 
