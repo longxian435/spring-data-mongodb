@@ -255,6 +255,7 @@
 					</excludes>
 					<systemPropertyVariables>
 						<java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
+						<reactor.trace.cancel>true</reactor.trace.cancel>
 					</systemPropertyVariables>
 					<properties>
 						<property>

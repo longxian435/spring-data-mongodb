@@ -16,10 +16,11 @@
 
 package org.springframework.data.mongodb.repository;
 
-import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactory;
 import org.springframework.data.mongodb.repository.support.SimpleReactiveMongoRepository;
@@ -42,6 +44,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.test.TestSubscriber;
 import rx.Observable;
 import rx.Single;
@@ -216,6 +220,41 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 		assertThat(value, is(equalTo(boyd)));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldFindOneByPublisherOfLastName() throws Exception {
+
+		ReactivePerson carter = reactiveRepository.findByLastname(Single.just("Beauford")).block();
+
+		assertThat(carter.getFirstname(), is(equalTo("Carter")));
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldFindByPublisherOfLastNameIn() throws Exception {
+
+		List<ReactivePerson> persons = reactiveRepository.findByLastnameIn(Observable.just("Beauford", "Matthews"))
+				.collectList().block();
+
+		assertThat(persons, hasItems(carter, dave, oliver));
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldFindByPublisherOfLastNameInAndAgeGreater() throws Exception {
+
+		List<ReactivePerson> persons = reactiveRepository
+				.findByLastnameInAndAgeGreaterThan(Flux.just("Beauford", "Matthews"), 41).toList().toBlocking().single();
+
+		assertThat(persons, hasItems(carter, dave));
+	}
+
 	static interface ReactivePersonRepostitory extends ReactivePagingAndSortingRepository<ReactivePerson, String> {
 
 		Publisher<ReactivePerson> findByLastname(String lastname);
@@ -233,6 +272,14 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 	static interface MixedReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
 
 		Single<ReactivePerson> findByLastname(String lastname);
+
+		Mono<ReactivePerson> findByLastname(Single<String> lastname);
+
+		Flux<ReactivePerson> findByLastnameIn(Observable<String> lastname);
+
+		Flux<ReactivePerson> findByLastname(String lastname, Sort sort);
+
+		Observable<ReactivePerson> findByLastnameInAndAgeGreaterThan(Flux<String> lastname, int age);
 	}
 
 	@Data

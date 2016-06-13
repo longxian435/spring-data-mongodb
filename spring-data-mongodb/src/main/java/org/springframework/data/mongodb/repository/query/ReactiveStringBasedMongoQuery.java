@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.query.BasicQuery;
@@ -57,10 +58,11 @@ public class ReactiveStringBasedMongoQuery extends AbstractReactiveMongoQuery {
 	 * @param mongoOperations must not be {@literal null}.
 	 * @param expressionParser must not be {@literal null}.
 	 * @param evaluationContextProvider must not be {@literal null}.
+	 * @param conversionService must not be {@literal null}.
 	 */
 	public ReactiveStringBasedMongoQuery(MongoQueryMethod method, ReactiveMongoOperations mongoOperations,
-										 SpelExpressionParser expressionParser, EvaluationContextProvider evaluationContextProvider) {
-		this(method.getAnnotatedQuery(), method, mongoOperations, expressionParser, evaluationContextProvider);
+										 SpelExpressionParser expressionParser, EvaluationContextProvider evaluationContextProvider, ConversionService conversionService) {
+		this(method.getAnnotatedQuery(), method, mongoOperations, expressionParser, evaluationContextProvider, conversionService);
 	}
 
 	/**
@@ -71,11 +73,12 @@ public class ReactiveStringBasedMongoQuery extends AbstractReactiveMongoQuery {
 	 * @param method must not be {@literal null}.
 	 * @param mongoOperations must not be {@literal null}.
 	 * @param expressionParser must not be {@literal null}.
+	 * @param conversionService must not be {@literal null}.
 	 */
 	public ReactiveStringBasedMongoQuery(String query, MongoQueryMethod method, ReactiveMongoOperations mongoOperations,
-										 SpelExpressionParser expressionParser, EvaluationContextProvider evaluationContextProvider) {
+										 SpelExpressionParser expressionParser, EvaluationContextProvider evaluationContextProvider, ConversionService conversionService) {
 
-		super(method, mongoOperations);
+		super(method, mongoOperations, conversionService);
 
 		Assert.notNull(query, "Query must not be null!");
 		Assert.notNull(expressionParser, "SpelExpressionParser must not be null!");

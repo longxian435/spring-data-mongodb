@@ -78,7 +78,7 @@ public class ReactiveMongoTemplateIndexTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().block();
+			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").block();
 			mongoVersion = Version.parse(result.get("version").toString());
 		}
 	}

@@ -120,8 +120,8 @@ import reactor.core.tuple.Tuple2;
  * Primary implementation of {@link ReactiveMongoOperations}.
  *
  * @author Mark Paluch
+ * @since 2.0
  */
-@SuppressWarnings("deprecation")
 public class ReactiveMongoTemplate implements ReactiveMongoOperations, ApplicationContextAware {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveMongoTemplate.class);
@@ -311,7 +311,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#executeCommand(java.lang.String)
 	 */
-	public Flux<Document> executeCommand(String jsonCommand) {
+	public Mono<Document> executeCommand(String jsonCommand) {
 
 		Assert.notNull(jsonCommand, "Command must not be empty!");
 
@@ -321,21 +321,21 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#executeCommand(org.bson.Document)
 	 */
-	public Flux<Document> executeCommand(final Document command) {
+	public Mono<Document> executeCommand(final Document command) {
 
 		Assert.notNull(command, "Command must not be null!");
 
-		return createFlux(db -> db.runCommand(command));
+		return createFlux(db -> db.runCommand(command)).next();
 	}
 
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#executeCommand(org.bson.Document, com.mongodb.ReadPreference)
 	 */
-	public Flux<Document> executeCommand(final Document command, final ReadPreference readPreference) {
+	public Mono<Document> executeCommand(final Document command, final ReadPreference readPreference) {
 
 		Assert.notNull(command, "Command must not be null!");
 
-		return createFlux(db -> readPreference != null ? db.runCommand(command, readPreference) : db.runCommand(command));
+		return createFlux(db -> readPreference != null ? db.runCommand(command, readPreference) : db.runCommand(command)).next();
 	}
 
 	/* (non-Javadoc)
@@ -1378,10 +1378,6 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 				new ReadDocumentCallback<T>(mongoConverter, entityClass, collectionName), collectionName);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.core.MongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.String)
-	 */
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.String)
 	 */
@@ -1391,10 +1387,6 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		return findAllAndRemove(query, null, collectionName);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.core.MongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.Class)
-	 */
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.Class)
 	 */
@@ -1403,10 +1395,6 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		return findAllAndRemove(query, entityClass, determineCollectionName(entityClass));
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.mongodb.core.MongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.Class, java.lang.String)
-	 */
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#findAllAndRemove(org.springframework.data.mongodb.core.query.Query, java.lang.Class, java.lang.String)
 	 */

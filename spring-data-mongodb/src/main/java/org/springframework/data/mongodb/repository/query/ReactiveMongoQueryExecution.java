@@ -71,7 +71,6 @@ interface ReactiveMongoQueryExecution {
 		private final @NonNull Pageable pageable;
 
 		@Override
-		@SuppressWarnings({ "unchecked", "rawtypes" })
 		public Object execute(Query query, Class<?> type, String collection) {
 
 			int pageSize = pageable.getPageSize();
@@ -96,7 +95,6 @@ interface ReactiveMongoQueryExecution {
 		private final @NonNull Pageable pageable;
 
 		@Override
-		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public Object execute(Query query, Class<?> type, String collection) {
 
 			int overallLimit = query.getLimit();

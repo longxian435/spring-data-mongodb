@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
  * @see Flux
  * @see Mono
  * @see http://projectreactor.io/docs/
+ * @since 2.0
  */
 public interface ReactiveMongoOperations {
 
@@ -68,16 +69,18 @@ public interface ReactiveMongoOperations {
 	 * converted into Spring's DAO exception hierarchy.
 	 *
 	 * @param jsonCommand a MongoDB command expressed as a JSON string.
+	 * @return a result object returned by the action
 	 */
-	Flux<Document> executeCommand(String jsonCommand);
+	Mono<Document> executeCommand(String jsonCommand);
 
 	/**
 	 * Execute a MongoDB command. Any errors that result from executing this command will be converted into Spring's DAO
 	 * exception hierarchy.
 	 *
 	 * @param command a MongoDB command
+	 * @return a result object returned by the action
 	 */
-	Flux<Document> executeCommand(Document command);
+	Mono<Document> executeCommand(Document command);
 
 	/**
 	 * Execute a MongoDB command. Any errors that result from executing this command will be converted into Spring's data
@@ -85,9 +88,9 @@ public interface ReactiveMongoOperations {
 	 *
 	 * @param command a MongoDB command, must not be {@literal null}.
 	 * @param readPreference read preferences to use, can be {@literal null}.
-	 * @return
+	 * @return a result object returned by the action
 	 */
-	Flux<Document> executeCommand(Document command, ReadPreference readPreference);
+	Mono<Document> executeCommand(Document command, ReadPreference readPreference);
 
 	/**
 	 * Executes a {@link ReactiveDbCallback} translating any exceptions as necessary.
@@ -96,7 +99,7 @@ public interface ReactiveMongoOperations {
 	 *
 	 * @param <T> return type
 	 * @param action callback object that specifies the MongoDB actions to perform on the passed in DB instance.
-	 * @return a result object returned by the action or <tt>null</tt>
+	 * @return a result object returned by the action
 	 */
 	<T> Flux<T> execute(ReactiveDbCallback<T> action);
 

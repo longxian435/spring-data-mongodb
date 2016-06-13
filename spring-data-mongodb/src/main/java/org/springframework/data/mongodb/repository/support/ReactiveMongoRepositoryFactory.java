@@ -17,10 +17,12 @@ package org.springframework.data.mongodb.repository.support;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
@@ -43,17 +45,13 @@ import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.util.QueryExecutionConverters;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
-
-import reactor.core.converter.DependencyUtils;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import rx.Observable;
-import rx.Single;
+import org.springframework.util.ClassUtils;
 
 /**
  * Factory to create {@link org.springframework.data.mongodb.repository.ReactiveMongoRepository} instances.
  *
  * @author Mark Paluch
+ * @since 2.0
  */
 public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
@@ -61,6 +59,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 	private final ReactiveMongoOperations operations;
 	private final MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
+	private final ConversionService conversionService;
 
 	/**
 	 * Creates a new {@link ReactiveMongoRepositoryFactory} with the given {@link ReactiveMongoOperations}.
@@ -76,6 +75,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 		DefaultConversionService conversionService = new DefaultConversionService();
 		QueryExecutionConverters.registerConvertersIn(conversionService);
+		this.conversionService = conversionService;
 		setConversionService(conversionService);
 	}
 
@@ -106,7 +106,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 	 */
 	@Override
 	protected QueryLookupStrategy getQueryLookupStrategy(Key key, EvaluationContextProvider evaluationContextProvider) {
-		return new MongoQueryLookupStrategy(operations, evaluationContextProvider, mappingContext);
+		return new MongoQueryLookupStrategy(operations, evaluationContextProvider, mappingContext, conversionService);
 	}
 
 	/*
@@ -143,14 +143,17 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		private final ReactiveMongoOperations operations;
 		private final EvaluationContextProvider evaluationContextProvider;
 		MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
+		final ConversionService conversionService;
 
 		public MongoQueryLookupStrategy(ReactiveMongoOperations operations,
 				EvaluationContextProvider evaluationContextProvider,
-				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext) {
+				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext,
+				ConversionService conversionService) {
 
 			this.operations = operations;
 			this.evaluationContextProvider = evaluationContextProvider;
 			this.mappingContext = mappingContext;
+			this.conversionService = conversionService;
 		}
 
 		/*
@@ -167,11 +170,12 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 			if (namedQueries.hasQuery(namedQueryName)) {
 				String namedQuery = namedQueries.getQuery(namedQueryName);
 				return new ReactiveStringBasedMongoQuery(namedQuery, queryMethod, operations, EXPRESSION_PARSER,
-						evaluationContextProvider);
+						evaluationContextProvider, conversionService);
 			} else if (queryMethod.hasAnnotatedQuery()) {
-				return new ReactiveStringBasedMongoQuery(queryMethod, operations, EXPRESSION_PARSER, evaluationContextProvider);
+				return new ReactiveStringBasedMongoQuery(queryMethod, operations, EXPRESSION_PARSER, evaluationContextProvider,
+						conversionService);
 			} else {
-				return new ReactivePartTreeMongoQuery(queryMethod, operations);
+				return new ReactivePartTreeMongoQuery(queryMethod, operations, conversionService);
 			}
 		}
 	}
@@ -189,43 +193,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 		@Override
 		public boolean isCollectionQuery() {
-
-			boolean notPageable = !(isPageQuery() || isSliceQuery());
-
-			// TODO: Implement in a way that allows absence of RxJava/Reactor.
-			if (notPageable && org.springframework.util.ClassUtils.isAssignable(Flux.class, method.getReturnType())) {
-				return true;
-			}
-
-			if (DependencyUtils.hasRxJava1()) {
-				if (notPageable && org.springframework.util.ClassUtils.isAssignable(Observable.class, method.getReturnType())) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		/**
-		 * Returns whether the query returns a single element which can be either a {@link Page}/{@link Slice} or a domain
-		 * type.
-		 * 
-		 * @return
-		 */
-		private boolean isSingleQuery() {
-
-			// TODO: Implement in a way that allows absence of RxJava/Reactor.
-			if (org.springframework.util.ClassUtils.isAssignable(Mono.class, method.getReturnType())) {
-				return true;
-			}
-
-			if (DependencyUtils.hasRxJava1()) {
-				if (org.springframework.util.ClassUtils.isAssignable(Single.class, method.getReturnType())) {
-					return true;
-				}
-			}
-
-			return false;
+			return !(isPageQuery() || isSliceQuery()) && ReactiveTypes.isMultiType(method.getReturnType());
 		}
 
 		@Override
@@ -241,6 +209,91 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		@Override
 		public boolean isStreamQuery() {
 			return false;
+		}
+	}
+
+	static class ReactiveTypes {
+
+		final static Class<?> RXJAVA_SINGLE;
+		final static Class<?> RXJAVA_OBSERVABLE;
+
+		final static Class<?> REACTOR_MONO;
+		final static Class<?> REACTOR_FLUX;
+
+		static final Set<Class<?>> SINGLE_TYPES;
+		static final Set<Class<?>> MULTI_TYPES;
+
+		static {
+
+			Set<Class<?>> singleTypes = new HashSet<>();
+			Set<Class<?>> multiTypes = new HashSet<>();
+
+			Class<?> singleClass = loadClass("rx.Single");
+
+			if (singleClass != null) {
+				RXJAVA_SINGLE = singleClass;
+				singleTypes.add(singleClass);
+			} else {
+				RXJAVA_SINGLE = null;
+			}
+
+			Class<?> observableClass = loadClass("rx.Observable");
+
+			if (observableClass != null) {
+				RXJAVA_OBSERVABLE = observableClass;
+				multiTypes.add(observableClass);
+			} else {
+				RXJAVA_OBSERVABLE = null;
+			}
+
+			Class<?> monoClass = loadClass("reactor.core.publisher.Mono");
+
+			if (monoClass != null) {
+				REACTOR_MONO = monoClass;
+				singleTypes.add(singleClass);
+			} else {
+				REACTOR_MONO = null;
+			}
+
+			Class<?> fluxClass = loadClass("reactor.core.publisher.Flux");
+
+			if (fluxClass != null) {
+				REACTOR_FLUX = fluxClass;
+				multiTypes.add(fluxClass);
+			} else {
+				REACTOR_FLUX = null;
+			}
+
+			SINGLE_TYPES = Collections.unmodifiableSet(singleTypes);
+			MULTI_TYPES = Collections.unmodifiableSet(multiTypes);
+		}
+
+		public static boolean isSingleType(Class<?> theClass) {
+			return isAssignable(SINGLE_TYPES, theClass);
+		}
+
+		public static boolean isMultiType(Class<?> theClass) {
+			return isAssignable(MULTI_TYPES, theClass);
+		}
+
+		private static boolean isAssignable(Iterable<Class<?>> lhsTypes, Class<?> rhsType) {
+
+			for (Class<?> type : lhsTypes) {
+				if (org.springframework.util.ClassUtils.isAssignable(type, rhsType)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static Class<?> loadClass(String className) {
+
+			try {
+				return ClassUtils.forName(className, ReactiveTypes.class.getClassLoader());
+			} catch (ClassNotFoundException o_O) {
+				return null;
+			}
 		}
 	}
 }

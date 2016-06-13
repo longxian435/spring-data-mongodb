@@ -88,7 +88,7 @@ public class ReactiveMongoTemplateTests {
 	private void queryMongoVersionIfNecessary() {
 
 		if (mongoVersion == null) {
-			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").next().block();
+			org.bson.Document result = template.executeCommand("{ buildInfo: 1 }").block();
 			mongoVersion = org.springframework.data.util.Version.parse(result.get("version").toString());
 		}
 	}
@@ -226,7 +226,7 @@ public class ReactiveMongoTemplateTests {
 
 		List<Person> persons = Arrays.asList(new Person("Dick", 22), new Person("Harry", 23), new Person("Tom", 21));
 
-		template.insert(persons, "people").next().block();
+		template.insert(persons, "people").then().block();
 
 		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query().with(new Sort(new Order("firstname"))), Person.class, "people");
@@ -241,7 +241,7 @@ public class ReactiveMongoTemplateTests {
 
 		List<Person> persons = Arrays.asList(new Person("Dick", 22), new Person("Harry", 23), new Person("Tom", 21));
 
-		template.insert(persons, Person.class).next().block();
+		template.insert(persons, Person.class).then().block();
 
 		TestSubscriber<Person> testSubscriber = TestSubscriber.create();
 		Flux<Person> flux = template.find(new Query().with(new Sort(new Order("firstname"))), Person.class);
@@ -427,7 +427,7 @@ public class ReactiveMongoTemplateTests {
 		Sample spring = new Sample("100", "spring");
 		Sample data = new Sample("200", "data");
 		Sample mongodb = new Sample("300", "mongodb");
-		template.insert(Arrays.asList(spring, data, mongodb), Sample.class).next().block();
+		template.insert(Arrays.asList(spring, data, mongodb), Sample.class).then().block();
 
 		Query qry = query(where("field").in("spring", "mongodb"));
 

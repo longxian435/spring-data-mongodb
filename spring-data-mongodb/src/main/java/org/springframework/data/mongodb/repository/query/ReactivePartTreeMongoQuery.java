@@ -15,6 +15,7 @@
  */
 package org.springframework.data.mongodb.repository.query;
 
+import org.springframework.core.convert.ConversionService;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
@@ -49,10 +50,11 @@ public class ReactivePartTreeMongoQuery extends AbstractReactiveMongoQuery {
 	 *
 	 * @param method must not be {@literal null}.
 	 * @param mongoOperations must not be {@literal null}.
+	 * @param conversionService must not be {@literal null}.
 	 */
-	public ReactivePartTreeMongoQuery(MongoQueryMethod method, ReactiveMongoOperations mongoOperations) {
+	public ReactivePartTreeMongoQuery(MongoQueryMethod method, ReactiveMongoOperations mongoOperations, ConversionService conversionService) {
 
-		super(method, mongoOperations);
+		super(method, mongoOperations, conversionService);
 
 		this.processor = method.getResultProcessor();
 		this.tree = new PartTree(method.getName(), processor.getReturnedType().getDomainType());

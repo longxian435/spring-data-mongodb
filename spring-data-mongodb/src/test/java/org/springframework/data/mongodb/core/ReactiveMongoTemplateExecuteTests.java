@@ -66,7 +66,7 @@ public class ReactiveMongoTemplateExecuteTests {
 		cleanUp();
 
 		if (mongoVersion == null) {
-			org.bson.Document result = operations.executeCommand("{ buildInfo: 1 }").next().block();
+			org.bson.Document result = operations.executeCommand("{ buildInfo: 1 }").block();
 			mongoVersion = org.springframework.data.util.Version.parse(result.get("version").toString());
 		}
 	}
@@ -85,7 +85,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandJsonCommandShouldReturnSingleResponse() throws Exception {
 
-		Document document = operations.executeCommand("{ buildInfo: 1 }").next().block();
+		Document document = operations.executeCommand("{ buildInfo: 1 }").block();
 
 		assertThat(document, hasKey("version"));
 	}
@@ -93,7 +93,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeCommandDocumentCommandShouldReturnSingleResponse() throws Exception {
 
-		Document document = operations.executeCommand(new Document("buildInfo", 1)).next().block();
+		Document document = operations.executeCommand(new Document("buildInfo", 1)).block();
 
 		assertThat(document, hasKey("version"));
 	}
@@ -103,7 +103,7 @@ public class ReactiveMongoTemplateExecuteTests {
 
 		assumeTrue(mongoVersion.isGreaterThan(THREE));
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").block();
 
 		TestSubscriber<Document> subscriber = TestSubscriber.create();
 		operations.executeCommand("{ find: 'execute_test'}").subscribe(subscriber);
@@ -145,9 +145,9 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnDatabaseShouldExecuteCommand() throws Exception {
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
-		operations.executeCommand("{ insert: 'execute_test1', documents: [{},{},{}]}").next().block();
-		operations.executeCommand("{ insert: 'execute_test2', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").block();
+		operations.executeCommand("{ insert: 'execute_test1', documents: [{},{},{}]}").block();
+		operations.executeCommand("{ insert: 'execute_test2', documents: [{},{},{}]}").block();
 
 		Flux<Document> execute = operations.execute(MongoDatabase::listCollections);
 
@@ -184,7 +184,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnCollectionWithTypeShouldReturnFindResults() throws Exception {
 
-		operations.executeCommand("{ insert: 'person', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'person', documents: [{},{},{}]}").block();
 
 		TestSubscriber<Document> testSubscriber = TestSubscriber.create();
 
@@ -197,7 +197,7 @@ public class ReactiveMongoTemplateExecuteTests {
 	@Test
 	public void executeOnCollectionWithNameShouldReturnFindResults() throws Exception {
 
-		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").next().block();
+		operations.executeCommand("{ insert: 'execute_test', documents: [{},{},{}]}").block();
 
 		TestSubscriber<Document> testSubscriber = TestSubscriber.create();
 

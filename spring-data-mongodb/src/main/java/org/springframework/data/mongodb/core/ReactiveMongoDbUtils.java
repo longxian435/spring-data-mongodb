@@ -81,11 +81,6 @@ public abstract class ReactiveMongoDbUtils {
 
 		MongoDatabase db = mongo.getDatabase(databaseName);
 
-		if (!(mongo instanceof MongoClient) && requiresAuthDbAuthentication(credentials)) {
-			// TODO: necessary?
-			// ReflectiveDbInvoker.authenticate(mongo, db, credentials, authenticationDatabaseName);
-		}
-
 		// TX sync active, bind new database to thread
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
 
