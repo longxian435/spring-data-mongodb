@@ -252,6 +252,7 @@
 					</includes>
 					<excludes>
 						<exclude>**/PerformanceTests.java</exclude>
+						<exclude>**/ReactivePerformanceTests.java</exclude>
 					</excludes>
 					<systemPropertyVariables>
 						<java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
