@@ -41,7 +41,7 @@ public class ReactiveMongoTemplateUnitTests {
 
 	ReactiveMongoTemplate template;
 
-	@Mock ReactiveMongoDbFactory factory;
+	@Mock SimpleReactiveMongoDbFactory factory;
 	@Mock MongoClient mongoClient;
 
 	MongoExceptionTranslator exceptionTranslator = new MongoExceptionTranslator();
@@ -58,16 +58,25 @@ public class ReactiveMongoTemplateUnitTests {
 		this.template = new ReactiveMongoTemplate(factory, converter);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void rejectsNullDatabaseName() throws Exception {
 		new ReactiveMongoTemplate(mongoClient, null);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void rejectsNullMongo() throws Exception {
 		new ReactiveMongoTemplate(null, "database");
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void defaultsConverterToMappingMongoConverter() throws Exception {
 		ReactiveMongoTemplate template = new ReactiveMongoTemplate(mongoClient, "database");

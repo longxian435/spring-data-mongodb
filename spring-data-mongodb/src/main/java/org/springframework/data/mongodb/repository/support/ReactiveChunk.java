@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.data.mongodb.domain.reactive;
+package org.springframework.data.mongodb.repository.support;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -210,12 +210,8 @@ abstract class ReactiveChunk<T> implements Slice<T>, Serializable {
 	protected boolean containsMore() {
 
 		List<T> list = processor.block();
-		
-		if (list.size() > pageable.getPageSize()) {
-			return true;
-		}
 
-		return false;
+		return list.size() > pageable.getPageSize();
 	}
 
 	/*

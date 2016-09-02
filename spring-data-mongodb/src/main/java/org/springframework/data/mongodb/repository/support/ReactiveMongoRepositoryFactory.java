@@ -17,9 +17,6 @@ package org.springframework.data.mongodb.repository.support;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
@@ -41,11 +38,11 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 import org.springframework.data.repository.query.EvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
+import org.springframework.data.repository.query.ReactiveWrappers;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.util.QueryExecutionConverters;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 
 /**
  * Factory to create {@link org.springframework.data.mongodb.repository.ReactiveMongoRepository} instances.
@@ -145,8 +142,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
 		final ConversionService conversionService;
 
-		public MongoQueryLookupStrategy(ReactiveMongoOperations operations,
-				EvaluationContextProvider evaluationContextProvider,
+		MongoQueryLookupStrategy(ReactiveMongoOperations operations, EvaluationContextProvider evaluationContextProvider,
 				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext,
 				ConversionService conversionService) {
 
@@ -180,11 +176,11 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		}
 	}
 
-	static class ReactiveMongoQueryMethod extends MongoQueryMethod {
+	private static class ReactiveMongoQueryMethod extends MongoQueryMethod {
 
 		private Method method;
 
-		public ReactiveMongoQueryMethod(Method method, RepositoryMetadata metadata, ProjectionFactory projectionFactory,
+		ReactiveMongoQueryMethod(Method method, RepositoryMetadata metadata, ProjectionFactory projectionFactory,
 				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext) {
 			super(method, metadata, projectionFactory, mappingContext);
 
@@ -193,7 +189,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
 		@Override
 		public boolean isCollectionQuery() {
-			return !(isPageQuery() || isSliceQuery()) && ReactiveTypes.isMultiType(method.getReturnType());
+			return !(isPageQuery() || isSliceQuery()) && ReactiveWrappers.isMultiType(method.getReturnType());
 		}
 
 		@Override
@@ -209,91 +205,6 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 		@Override
 		public boolean isStreamQuery() {
 			return false;
-		}
-	}
-
-	static class ReactiveTypes {
-
-		final static Class<?> RXJAVA_SINGLE;
-		final static Class<?> RXJAVA_OBSERVABLE;
-
-		final static Class<?> REACTOR_MONO;
-		final static Class<?> REACTOR_FLUX;
-
-		static final Set<Class<?>> SINGLE_TYPES;
-		static final Set<Class<?>> MULTI_TYPES;
-
-		static {
-
-			Set<Class<?>> singleTypes = new HashSet<>();
-			Set<Class<?>> multiTypes = new HashSet<>();
-
-			Class<?> singleClass = loadClass("rx.Single");
-
-			if (singleClass != null) {
-				RXJAVA_SINGLE = singleClass;
-				singleTypes.add(singleClass);
-			} else {
-				RXJAVA_SINGLE = null;
-			}
-
-			Class<?> observableClass = loadClass("rx.Observable");
-
-			if (observableClass != null) {
-				RXJAVA_OBSERVABLE = observableClass;
-				multiTypes.add(observableClass);
-			} else {
-				RXJAVA_OBSERVABLE = null;
-			}
-
-			Class<?> monoClass = loadClass("reactor.core.publisher.Mono");
-
-			if (monoClass != null) {
-				REACTOR_MONO = monoClass;
-				singleTypes.add(singleClass);
-			} else {
-				REACTOR_MONO = null;
-			}
-
-			Class<?> fluxClass = loadClass("reactor.core.publisher.Flux");
-
-			if (fluxClass != null) {
-				REACTOR_FLUX = fluxClass;
-				multiTypes.add(fluxClass);
-			} else {
-				REACTOR_FLUX = null;
-			}
-
-			SINGLE_TYPES = Collections.unmodifiableSet(singleTypes);
-			MULTI_TYPES = Collections.unmodifiableSet(multiTypes);
-		}
-
-		public static boolean isSingleType(Class<?> theClass) {
-			return isAssignable(SINGLE_TYPES, theClass);
-		}
-
-		public static boolean isMultiType(Class<?> theClass) {
-			return isAssignable(MULTI_TYPES, theClass);
-		}
-
-		private static boolean isAssignable(Iterable<Class<?>> lhsTypes, Class<?> rhsType) {
-
-			for (Class<?> type : lhsTypes) {
-				if (org.springframework.util.ClassUtils.isAssignable(type, rhsType)) {
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		private static Class<?> loadClass(String className) {
-
-			try {
-				return ClassUtils.forName(className, ReactiveTypes.class.getClassLoader());
-			} catch (ClassNotFoundException o_O) {
-				return null;
-			}
 		}
 	}
 }

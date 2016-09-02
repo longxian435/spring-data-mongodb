@@ -19,6 +19,8 @@ import java.util.Collection;
 
 import org.bson.Document;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -37,9 +39,8 @@ import reactor.core.publisher.Mono;
  * Interface that specifies a basic set of MongoDB operations executed in a reactive way. Implemented by
  * {@link ReactiveMongoTemplate}. Not often used but a useful option for extensibility and testability (as it can be
  * easily mocked, stubbed, or be the target of a JDK proxy). Command execution using {@link ReactiveMongoOperations} is
- * deffered until subscriber subscribes to the {@link Publisher}.
- *
- * TODO: PersistenceException log/ignore/exception, return inserted objects of insert methods, geo, aggregation
+ * deffered until subscriber subscribes to the {@link Publisher}. TODO: PersistenceException log/ignore/exception,
+ * return inserted objects of insert methods, geo, aggregation
  *
  * @author Mark Paluch
  * @see Flux
@@ -50,18 +51,32 @@ import reactor.core.publisher.Mono;
 public interface ReactiveMongoOperations {
 
 	/**
+	 * Returns the reactive operations that can be performed on indexes
+	 *
+	 * @return index operations on the named collection
+	 */
+	ReactiveIndexOperations reactiveIndexOps(String collectionName);
+
+	/**
+	 * Returns the reactive operations that can be performed on indexes
+	 *
+	 * @return index operations on the named collection associated with the given entity class
+	 */
+	ReactiveIndexOperations reactiveIndexOps(Class<?> entityClass);
+
+	/**
 	 * Returns the operations that can be performed on indexes
 	 *
 	 * @return index operations on the named collection
 	 */
-	ReactiveIndexOperations indexOps(String collectionName);
+	IndexOperations indexOps(String collectionName);
 
 	/**
 	 * Returns the operations that can be performed on indexes
 	 *
 	 * @return index operations on the named collection associated with the given entity class
 	 */
-	ReactiveIndexOperations indexOps(Class<?> entityClass);
+	IndexOperations indexOps(Class<?> entityClass);
 
 	/**
 	 * Execute the a MongoDB command expressed as a JSON string. This will call the method JSON.parse that is part of the
@@ -93,7 +108,7 @@ public interface ReactiveMongoOperations {
 	Mono<Document> executeCommand(Document command, ReadPreference readPreference);
 
 	/**
-	 * Executes a {@link ReactiveDbCallback} translating any exceptions as necessary.
+	 * Executes a {@link ReactiveDatabaseCallback} translating any exceptions as necessary.
 	 * <p/>
 	 * Allows for returning a result object, that is a domain object or a collection of domain objects.
 	 *
@@ -101,7 +116,7 @@ public interface ReactiveMongoOperations {
 	 * @param action callback object that specifies the MongoDB actions to perform on the passed in DB instance.
 	 * @return a result object returned by the action
 	 */
-	<T> Flux<T> execute(ReactiveDbCallback<T> action);
+	<T> Flux<T> execute(ReactiveDatabaseCallback<T> action);
 
 	/**
 	 * Executes the given {@link ReactiveCollectionCallback} on the entity collection of the specified class.
@@ -220,12 +235,12 @@ public interface ReactiveMongoOperations {
 	 * Query for a list of objects of type T from the collection used by the entity class.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If your collection does not contain a homogeneous collection of types, this operation will not be an efficient way
 	 * to map objects since the test for class type is done in the client and not on the server.
 	 *
-	 * @param entityClass the parameterized type of the returned list
+	 * @param entityClass the parametrized type of the returned list
 	 * @return the converted collection
 	 */
 	<T> Flux<T> findAll(Class<T> entityClass);
@@ -234,12 +249,12 @@ public interface ReactiveMongoOperations {
 	 * Query for a list of objects of type T from the specified collection.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If your collection does not contain a homogeneous collection of types, this operation will not be an efficient way
 	 * to map objects since the test for class type is done in the client and not on the server.
 	 *
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @param collectionName name of the collection to retrieve the objects from
 	 * @return the converted collection
 	 */
@@ -250,14 +265,14 @@ public interface ReactiveMongoOperations {
 	 * specified type.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
 	 * feature rich {@link Query}.
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @return the converted object
 	 */
 	<T> Mono<T> findOne(Query query, Class<T> entityClass);
@@ -267,14 +282,14 @@ public interface ReactiveMongoOperations {
 	 * type.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
 	 * feature rich {@link Query}.
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @param collectionName name of the collection to retrieve the objects from
 	 * @return the converted object
 	 */
@@ -293,7 +308,7 @@ public interface ReactiveMongoOperations {
 	 * Determine result of given {@link Query} contains at least one element.
 	 *
 	 * @param query the {@link Query} class that specifies the criteria used to find a record.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @return
 	 */
 	Mono<Boolean> exists(Query query, Class<?> entityClass);
@@ -302,7 +317,7 @@ public interface ReactiveMongoOperations {
 	 * Determine result of given {@link Query} contains at least one element.
 	 *
 	 * @param query the {@link Query} class that specifies the criteria used to find a record.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @param collectionName name of the collection to check for objects.
 	 * @return
 	 */
@@ -312,14 +327,14 @@ public interface ReactiveMongoOperations {
 	 * Map the results of an ad-hoc query on the collection for the entity class to a List of the specified type.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
 	 * feature rich {@link Query}.
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @return the List of converted objects
 	 */
 	<T> Flux<T> find(Query query, Class<T> entityClass);
@@ -328,14 +343,14 @@ public interface ReactiveMongoOperations {
 	 * Map the results of an ad-hoc query on the specified collection to a List of the specified type.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
 	 * feature rich {@link Query}.
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @param collectionName name of the collection to retrieve the objects from
 	 * @return the List of converted objects
 	 */
@@ -364,54 +379,54 @@ public interface ReactiveMongoOperations {
 	<T> Mono<T> findById(Object id, Class<T> entityClass, String collectionName);
 
 	/**
-	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify
-	 * <a/> to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query}.
+	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify <a/>
+	 * to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query}.
 	 *
 	 * @param query the {@link Query} class that specifies the {@link Criteria} used to find a record and also an optional
 	 *          fields specification.
 	 * @param update the {@link Update} to apply on matching documents.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @return
 	 */
 	<T> Mono<T> findAndModify(Query query, Update update, Class<T> entityClass);
 
 	/**
-	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify
-	 * <a/> to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query}.
+	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify <a/>
+	 * to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query}.
 	 *
 	 * @param query the {@link Query} class that specifies the {@link Criteria} used to find a record and also an optional
 	 *          fields specification.
 	 * @param update the {@link Update} to apply on matching documents.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @param collectionName the collection to query.
 	 * @return
 	 */
 	<T> Mono<T> findAndModify(Query query, Update update, Class<T> entityClass, String collectionName);
 
 	/**
-	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify
-	 * <a/> to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query} taking
+	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify <a/>
+	 * to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query} taking
 	 * {@link FindAndModifyOptions} into account.
 	 *
 	 * @param query the {@link Query} class that specifies the {@link Criteria} used to find a record and also an optional
 	 *          fields specification.
 	 * @param update the {@link Update} to apply on matching documents.
 	 * @param options the {@link FindAndModifyOptions} holding additional information.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @return
 	 */
 	<T> Mono<T> findAndModify(Query query, Update update, FindAndModifyOptions options, Class<T> entityClass);
 
 	/**
-	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify
-	 * <a/> to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query} taking
+	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify <a/>
+	 * to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query} taking
 	 * {@link FindAndModifyOptions} into account.
 	 *
 	 * @param query the {@link Query} class that specifies the {@link Criteria} used to find a record and also an optional
 	 *          fields specification.
 	 * @param update the {@link Update} to apply on matching documents.
 	 * @param options the {@link FindAndModifyOptions} holding additional information.
-	 * @param entityClass the parameterized type.
+	 * @param entityClass the parametrized type.
 	 * @param collectionName the collection to query.
 	 * @return
 	 */
@@ -430,7 +445,7 @@ public interface ReactiveMongoOperations {
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @return the converted object
 	 */
 	<T> Mono<T> findAndRemove(Query query, Class<T> entityClass);
@@ -440,14 +455,14 @@ public interface ReactiveMongoOperations {
 	 * type. The first document that matches the query is returned and also removed from the collection in the database.
 	 * <p/>
 	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
 	 * feature rich {@link Query}.
 	 *
 	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
 	 *          specification
-	 * @param entityClass the parameterized type of the returned list.
+	 * @param entityClass the parametrized type of the returned list.
 	 * @param collectionName name of the collection to retrieve the objects from
 	 * @return the converted object
 	 */
@@ -508,7 +523,7 @@ public interface ReactiveMongoOperations {
 	 * Insert the object into the specified collection.
 	 * <p/>
 	 * The object is converted to the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * Insert is used to initially store the object into the database. To update an existing object use the save method.
 	 *
@@ -562,6 +577,7 @@ public interface ReactiveMongoOperations {
 	 * @param objectToSave the object to store in the collection.
 	 * @return
 	 */
+	// TODO: Naming? insertOne/insertMany in MongoCollection
 	<T> Mono<T> insert(Mono<? extends T> objectToSave);
 
 	/**
@@ -596,7 +612,7 @@ public interface ReactiveMongoOperations {
 	 * object is not already present, that is an 'upsert'.
 	 * <p/>
 	 * The object is converted to the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If you object has an "Id' property, it will be set with the generated Id from MongoDB. If your Id property is a
 	 * String then MongoDB ObjectId will be used to populate that string. Otherwise, the conversion from ObjectId to your
@@ -614,11 +630,11 @@ public interface ReactiveMongoOperations {
 	 * is an 'upsert'.
 	 * <p/>
 	 * The object is converted to the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If you object has an "Id' property, it will be set with the generated Id from MongoDB. If your Id property is a
 	 * String then MongoDB ObjectId will be used to populate that string. Otherwise, the conversion from ObjectId to your
-	 * property type will be handled by Spring's BeanWrapper class that leverages Type Cobnversion API. See <a
+	 * property type will be handled by Spring's BeanWrapper class that leverages Type Conversion API. See <a
 	 * http://docs.spring.io/spring/docs/current/spring-framework-reference/html/validation.html#core-convert">Spring's
 	 * Type Conversion"</a> for more details.
 	 *
@@ -633,7 +649,7 @@ public interface ReactiveMongoOperations {
 	 * object is not already present, that is an 'upsert'.
 	 * <p/>
 	 * The object is converted to the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If you object has an "Id' property, it will be set with the generated Id from MongoDB. If your Id property is a
 	 * String then MongoDB ObjectId will be used to populate that string. Otherwise, the conversion from ObjectId to your
@@ -651,11 +667,11 @@ public interface ReactiveMongoOperations {
 	 * is an 'upsert'.
 	 * <p/>
 	 * The object is converted to the MongoDB native representation using an instance of {@see MongoConverter}. Unless
-	 * configured otherwise, an instance of MappingMongoConverter will be used.
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
 	 * <p/>
 	 * If you object has an "Id' property, it will be set with the generated Id from MongoDB. If your Id property is a
 	 * String then MongoDB ObjectId will be used to populate that string. Otherwise, the conversion from ObjectId to your
-	 * property type will be handled by Spring's BeanWrapper class that leverages Type Cobnversion API. See <a
+	 * property type will be handled by Spring's BeanWrapper class that leverages Type Conversion API. See <a
 	 * http://docs.spring.io/spring/docs/current/spring-framework-reference/html/validation.html#core-convert">Spring's
 	 * Type Conversion"</a> for more details.
 	 *
@@ -868,10 +884,48 @@ public interface ReactiveMongoOperations {
 	<T> Flux<T> findAllAndRemove(Query query, Class<T> entityClass, String collectionName);
 
 	/**
+	 * Map the results of an ad-hoc query on the collection for the entity class to a stream of objects of the specified
+	 * type. The stream uses a {@link com.mongodb.CursorType#TailableAwait tailable} cursor that may be an infinite
+	 * stream. The stream will not be completed unless the {@link org.reactivestreams.Subscription} is
+	 * {@link Subscription#cancel() canceled}.
+	 * <p/>
+	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
+	 * <p/>
+	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
+	 * feature rich {@link Query}.
+	 *
+	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
+	 *          specification
+	 * @param entityClass the parametrized type of the returned list.
+	 * @return the List of converted objects
+	 */
+	<T> Flux<T> tail(Query query, Class<T> entityClass);
+
+	/**
+	 * Map the results of an ad-hoc query on the collection for the entity class to a stream of objects of the specified
+	 * type. The stream uses a {@link com.mongodb.CursorType#TailableAwait tailable} cursor that may be an infinite
+	 * stream. The stream will not be completed unless the {@link org.reactivestreams.Subscription} is
+	 * {@link Subscription#cancel() canceled}.
+	 * <p/>
+	 * The object is converted from the MongoDB native representation using an instance of {@see MongoConverter}. Unless
+	 * configured otherwise, an instance of {@link MappingMongoConverter} will be used.
+	 * <p/>
+	 * The query is specified as a {@link Query} which can be created either using the {@link BasicQuery} or the more
+	 * feature rich {@link Query}.
+	 *
+	 * @param query the query class that specifies the criteria used to find a record and also an optional fields
+	 *          specification
+	 * @param entityClass the parametrized type of the returned list.
+	 * @param collectionName name of the collection to retrieve the objects from
+	 * @return the List of converted objects
+	 */
+	<T> Flux<T> tail(Query query, Class<T> entityClass, String collectionName);
+
+	/**
 	 * Returns the underlying {@link MongoConverter}.
 	 *
 	 * @return
 	 */
 	MongoConverter getConverter();
-
 }

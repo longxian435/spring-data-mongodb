@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.mongodb.domain.reactive;
+package org.springframework.data.mongodb.repository.support;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.mongodb.repository.support.ReactivePageImpl;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

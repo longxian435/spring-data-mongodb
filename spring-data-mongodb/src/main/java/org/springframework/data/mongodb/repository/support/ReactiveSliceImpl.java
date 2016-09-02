@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.mongodb.domain.reactive;
+package org.springframework.data.mongodb.repository.support;
 
 import java.util.List;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 
 import reactor.core.publisher.Flux;
 
@@ -48,10 +49,11 @@ public class ReactiveSliceImpl<T> extends ReactiveChunk<T> {
 	}
 
 	public <S> Slice<S> map(Converter<? super T, ? extends S> converter) {
-		return new org.springframework.data.domain.SliceImpl(this.getConvertedContent(converter), pageable, this.hasNext());
+		return new SliceImpl<>(this.getConvertedContent(converter), pageable, this.hasNext());
 	}
 
 	public String toString() {
+
 		String contentType = "UNKNOWN";
 		List content = this.getContent();
 		if (content.size() > 0) {
@@ -59,6 +61,6 @@ public class ReactiveSliceImpl<T> extends ReactiveChunk<T> {
 		}
 
 		return String.format("Slice %d containing %s instances",
-				new Object[] { Integer.valueOf(this.getNumber()), contentType });
+				this.getNumber(), contentType);
 	}
 }

@@ -13,21 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data.mongodb.core;
 
-import org.springframework.dao.support.PersistenceExceptionTranslator;
+import org.springframework.dao.DataAccessException;
 
-/**
- * TODO: Revisit for a better pattern.
- * @author Mark Paluch
- */
-public interface IndexOperationsProvider {
+import com.mongodb.MongoException;
+import com.mongodb.reactivestreams.client.MongoDatabase;
+import org.reactivestreams.Publisher;
 
-	/**
-	 * Returns the operations that can be performed on indexes
-	 *
-	 * @return index operations on the named collection
-	 */
-	IndexOperations indexOps(String collectionName);
+public interface ReactiveDatabaseCallback<T> {
+
+	Publisher<T> doInDB(MongoDatabase db) throws MongoException, DataAccessException;
 }

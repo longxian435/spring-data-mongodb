@@ -26,17 +26,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.reactivestreams.Publisher;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanClassLoaderAware;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactory;
-import org.springframework.data.mongodb.repository.support.SimpleReactiveMongoRepository;
-import org.springframework.data.repository.query.DefaultEvaluationContextProvider;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.data.repository.reactive.ReactivePagingAndSortingRepository;
 import org.springframework.data.repository.reactive.RxJavaPagingAndSortingRepository;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,52 +43,33 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.test.TestSubscriber;
+import reactor.test.TestSubscriber;
 import rx.Observable;
 import rx.Single;
 
 /**
- * Test for {@link ReactiveMongoRepository} using reative wrapper type conversion.
+ * Test for {@link ReactiveMongoRepository} using reactive wrapper type conversion.
  *
  * @author Mark Paluch
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration("classpath:reactive-infrastructure.xml")
-public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanFactoryAware {
+@ContextConfiguration(classes = ConvertingReactiveMongoRepositoryTests.Config.class)
+public class ConvertingReactiveMongoRepositoryTests {
+
+	@EnableReactiveMongoRepositories(considerNestedRepositories = true)
+	@ImportResource("classpath:reactive-infrastructure.xml")
+	static class Config {}
 
 	@Autowired ReactiveMongoTemplate template;
 
-	ReactiveMongoRepositoryFactory factory;
-	private ClassLoader classLoader;
-	private BeanFactory beanFactory;
-	private MixedReactivePersonRepostitory reactiveRepository;
-	private ReactivePersonRepostitory reactivePersonRepostitory;
-	private RxJavaPersonRepostitory rxJavaPersonRepostitory;
+	@Autowired MixedReactivePersonRepostitory reactiveRepository;
+	@Autowired ReactivePersonRepostitory reactivePersonRepostitory;
+	@Autowired RxJavaPersonRepostitory rxJavaPersonRepostitory;
 
 	ReactivePerson dave, oliver, carter, boyd, stefan, leroi, alicia;
 
-	@Override
-	public void setBeanClassLoader(ClassLoader classLoader) {
-		this.classLoader = classLoader == null ? org.springframework.util.ClassUtils.getDefaultClassLoader() : classLoader;
-	}
-
-	@Override
-	public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-		this.beanFactory = beanFactory;
-	}
-
 	@Before
 	public void setUp() throws Exception {
-
-		factory = new ReactiveMongoRepositoryFactory(template);
-		factory.setRepositoryBaseClass(SimpleReactiveMongoRepository.class);
-		factory.setBeanClassLoader(classLoader);
-		factory.setBeanFactory(beanFactory);
-		factory.setEvaluationContextProvider(DefaultEvaluationContextProvider.INSTANCE);
-
-		reactiveRepository = factory.getRepository(MixedReactivePersonRepostitory.class);
-		reactivePersonRepostitory = factory.getRepository(ReactivePersonRepostitory.class);
-		rxJavaPersonRepostitory = factory.getRepository(RxJavaPersonRepostitory.class);
 
 		reactiveRepository.deleteAll().block();
 
@@ -255,12 +233,12 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 		assertThat(persons, hasItems(carter, dave));
 	}
 
-	static interface ReactivePersonRepostitory extends ReactivePagingAndSortingRepository<ReactivePerson, String> {
+	interface ReactivePersonRepostitory extends ReactivePagingAndSortingRepository<ReactivePerson, String> {
 
 		Publisher<ReactivePerson> findByLastname(String lastname);
 	}
 
-	static interface RxJavaPersonRepostitory extends RxJavaPagingAndSortingRepository<ReactivePerson, String> {
+	interface RxJavaPersonRepostitory extends RxJavaPagingAndSortingRepository<ReactivePerson, String> {
 
 		Observable<ReactivePerson> findByFirstnameAndLastname(String firstname, String lastname);
 
@@ -269,7 +247,7 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 		Single<ProjectedPerson> findProjectedByLastname(String lastname);
 	}
 
-	static interface MixedReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
+	interface MixedReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
 
 		Single<ReactivePerson> findByLastname(String lastname);
 
@@ -282,6 +260,7 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 		Observable<ReactivePerson> findByLastnameInAndAgeGreaterThan(Flux<String> lastname, int age);
 	}
 
+	@Document
 	@Data
 	@NoArgsConstructor
 	static class ReactivePerson {
@@ -302,8 +281,8 @@ public class ConvertingReactiveMongoRepositoryTests implements BeanClassLoaderAw
 
 	interface ProjectedPerson {
 
-		public String getId();
+		String getId();
 
-		public String getFirstname();
+		String getFirstname();
 	}
 }

@@ -14,20 +14,17 @@
  * limitations under the License.
  */
 
-package org.springframework.data.mongodb.core;
+package org.springframework.data.mongodb.repository.custom;
 
-import org.springframework.dao.support.PersistenceExceptionTranslator;
+import java.util.List;
+
+import org.springframework.data.mongodb.repository.User;
 
 /**
- * TODO: Revisit for a better pattern.
  * @author Mark Paluch
  */
-public interface IndexOperationsProvider {
+public interface CustomReactiveMongoRepositoryCustom {
 
-	/**
-	 * Returns the operations that can be performed on indexes
-	 *
-	 * @return index operations on the named collection
-	 */
-	IndexOperations indexOps(String collectionName);
+	List<User> findByUsernameCustom(String username);
+
 }

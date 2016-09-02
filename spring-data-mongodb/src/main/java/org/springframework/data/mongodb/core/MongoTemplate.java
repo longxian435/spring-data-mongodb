@@ -2123,7 +2123,6 @@ public class MongoTemplate implements MongoOperations, ApplicationContextAware, 
 		}
 	}
 
-	@Override
 	public PersistenceExceptionTranslator getExceptionTranslator() {
 		return exceptionTranslator;
 	}

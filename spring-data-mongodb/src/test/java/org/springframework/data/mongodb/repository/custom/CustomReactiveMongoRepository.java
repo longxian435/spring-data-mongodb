@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package org.springframework.data.mongodb.core;
+package org.springframework.data.mongodb.repository.custom;
 
-import org.springframework.dao.support.PersistenceExceptionTranslator;
+import org.springframework.data.mongodb.repository.User;
+import org.springframework.data.repository.reactive.RxJavaCrudRepository;
 
 /**
- * TODO: Revisit for a better pattern.
  * @author Mark Paluch
  */
-public interface IndexOperationsProvider {
+public interface CustomReactiveMongoRepository
+		extends RxJavaCrudRepository<User, String>, CustomReactiveMongoRepositoryCustom {
 
-	/**
-	 * Returns the operations that can be performed on indexes
-	 *
-	 * @return index operations on the named collection
-	 */
-	IndexOperations indexOps(String collectionName);
 }

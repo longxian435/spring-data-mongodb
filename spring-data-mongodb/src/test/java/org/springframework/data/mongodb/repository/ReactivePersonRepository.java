@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-package org.springframework.data.mongodb.core;
+package org.springframework.data.mongodb.repository;
 
-import org.springframework.dao.support.PersistenceExceptionTranslator;
+import reactor.core.publisher.Flux;
 
 /**
- * TODO: Revisit for a better pattern.
+ * Sample reactive repository managing {@link Person} entities.
+ * 
  * @author Mark Paluch
  */
-public interface IndexOperationsProvider {
+public interface ReactivePersonRepository extends ReactiveMongoRepository<Person, String> {
 
 	/**
-	 * Returns the operations that can be performed on indexes
-	 *
-	 * @return index operations on the named collection
+	 * Returns all {@link Person}s with the given lastname.
+	 * 
+	 * @param lastname
+	 * @return
 	 */
-	IndexOperations indexOps(String collectionName);
+	Flux<Person> findByLastname(String lastname);
 }

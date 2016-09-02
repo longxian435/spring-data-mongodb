@@ -22,6 +22,9 @@ import static org.springframework.data.domain.Sort.Direction.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +41,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.Person.Sex;
 import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactory;
 import org.springframework.data.mongodb.repository.support.SimpleReactiveMongoRepository;
@@ -46,9 +51,11 @@ import org.springframework.data.repository.query.DefaultEvaluationContextProvide
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import lombok.NoArgsConstructor;
+import reactor.core.Cancellation;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.test.TestSubscriber;
+import reactor.test.TestSubscriber;
 
 /**
  * Test for {@link ReactiveMongoRepository} query methods.
@@ -64,7 +71,8 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	ReactiveMongoRepositoryFactory factory;
 	private ClassLoader classLoader;
 	private BeanFactory beanFactory;
-	private ReactivePersonRepostitory repository;
+	private ReactivePersonRepository repository;
+	private ReactiveCappedCollectionRepository cappedRepository;
 
 	Person dave, oliver, carter, boyd, stefan, leroi, alicia;
 
@@ -87,7 +95,8 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 		factory.setBeanFactory(beanFactory);
 		factory.setEvaluationContextProvider(DefaultEvaluationContextProvider.INSTANCE);
 
-		repository = factory.getRepository(ReactivePersonRepostitory.class);
+		repository = factory.getRepository(ReactivePersonRepository.class);
+		cappedRepository = factory.getRepository(ReactiveCappedCollectionRepository.class);
 
 		repository.deleteAll().block();
 
@@ -232,7 +241,59 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 		assertThat(persons, contains(dave, oliver));
 	}
 
-	static interface ReactivePersonRepostitory extends ReactiveMongoRepository<Person, String> {
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldUseInfiniteStream() throws Exception {
+
+		template.dropCollection(Capped.class).block();
+		template.createCollection(Capped.class, new CollectionOptions(1000, 100, true)).block();
+		template.insert(new Capped("value", Math.random())).block();
+
+		BlockingQueue<Capped> documents = new LinkedBlockingDeque<>(100);
+
+		Cancellation cancellation = cappedRepository.findByKey("value").doOnNext(documents::add).subscribe();
+
+		assertThat(documents.poll(5, TimeUnit.SECONDS), is(notNullValue()));
+
+		template.insert(new Capped("value", Math.random())).block();
+		assertThat(documents.poll(5, TimeUnit.SECONDS), is(notNullValue()));
+		assertThat(documents.isEmpty(), is(true));
+
+		cancellation.dispose();
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void shouldUseInfiniteStreamWithProjection() throws Exception {
+
+		template.dropCollection(Capped.class).block();
+		template.createCollection(Capped.class, new CollectionOptions(1000, 100, true)).block();
+		template.insert(new Capped("value", Math.random())).block();
+
+		BlockingQueue<CappedProjection> documents = new LinkedBlockingDeque<>(100);
+
+		Cancellation cancellation = cappedRepository.findProjectionByKey("value").doOnNext(documents::add).subscribe();
+
+		CappedProjection projection1 = documents.poll(5, TimeUnit.SECONDS);
+		assertThat(projection1, is(notNullValue()));
+		assertThat(projection1.getRandom(), is(not(0)));
+
+		template.insert(new Capped("value", Math.random())).block();
+
+		CappedProjection projection2 = documents.poll(5, TimeUnit.SECONDS);
+		assertThat(projection2, is(notNullValue()));
+		assertThat(projection2.getRandom(), is(not(0)));
+
+		assertThat(documents.isEmpty(), is(true));
+
+		cancellation.dispose();
+	}
+
+	interface ReactivePersonRepository extends ReactiveMongoRepository<Person, String> {
 
 		/**
 		 * Returns all {@link Person}s with the given lastname.
@@ -258,5 +319,32 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 
 		@Query("{ lastname: { $in: ?0 }, age: { $gt : ?1 } }")
 		Flux<Person> findStringQuery(Flux<String> lastname, Mono<Integer> age);
+	}
+
+	interface ReactiveCappedCollectionRepository extends ReactiveMongoRepository<Capped, String> {
+
+		@InfiniteStream
+		Flux<Capped> findByKey(String key);
+
+		@InfiniteStream
+		Flux<CappedProjection> findProjectionByKey(String key);
+	}
+
+	@Document
+	@NoArgsConstructor
+	static class Capped {
+
+		String id;
+		String key;
+		double random;
+
+		public Capped(String key, double random) {
+			this.key = key;
+			this.random = random;
+		}
+	}
+
+	interface CappedProjection {
+		double getRandom();
 	}
 }

@@ -33,7 +33,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.domain.reactive.ReactivePageImpl;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.data.mongodb.repository.query.MongoEntityInformation;
 import org.springframework.util.Assert;
@@ -174,7 +173,7 @@ public class SimpleReactiveMongoRepository<T, ID extends Serializable> implement
 
 	@Override
 	public <S extends T> Flux<S> findAll(Example<S> example) {
-		return findAll(example, (Sort) null);
+		return findAll(example, null);
 	}
 
 	public Mono<Long> count() {
@@ -334,7 +333,7 @@ public class SimpleReactiveMongoRepository<T, ID extends Serializable> implement
 		int capacity = tryDetermineRealSizeOrReturn(entities, 10);
 
 		if (capacity == 0 || entities == null) {
-			return Collections.<T> emptyList();
+			return Collections.emptyList();
 		}
 
 		List<T> list = new ArrayList<T>(capacity);

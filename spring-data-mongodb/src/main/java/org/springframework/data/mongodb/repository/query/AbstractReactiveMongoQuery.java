@@ -29,6 +29,7 @@ import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecu
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.ResultProcessingExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.SingleEntityExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.SlicedExecution;
+import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.TailExecution;
 import org.springframework.data.repository.query.ParameterAccessor;
 import org.springframework.data.repository.query.ReactiveWrapperConverters;
 import org.springframework.data.repository.query.RepositoryQuery;
@@ -144,13 +145,19 @@ public abstract class AbstractReactiveMongoQuery implements RepositoryQuery {
 			return new DeleteExecution(operations, method);
 		} else if (method.isSliceQuery()) {
 			return new SlicedExecution(operations, accessor.getPageable());
-		} else if (method.isCollectionQuery()) {
+		} else if (isInfiniteStream(method)) {
+			return new TailExecution(operations, accessor.getPageable());
+		}  else if (method.isCollectionQuery()) {
 			return new CollectionExecution(operations, accessor.getPageable());
 		} else if (method.isPageQuery()) {
 			return new PagedExecution(operations, accessor.getPageable());
 		} else {
 			return new SingleEntityExecution(operations, isCountQuery());
 		}
+	}
+
+	private boolean isInfiniteStream(MongoQueryMethod method) {
+		return method.getInfiniteStreamAnnotation() != null;
 	}
 
 	Query applyQueryMetaAttributesWhenPresent(Query query) {

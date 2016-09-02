@@ -61,7 +61,6 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 	private final IndexOperationsProvider indexOperationsProvider;
 	private final MongoMappingContext mappingContext;
 	private final IndexResolver indexResolver;
-	private final PersistenceExceptionTranslator exceptionTranslator;
 
 	/**
 	 * Creates a new {@link MongoPersistentEntityIndexCreator} for the given {@link MongoMappingContext} and
@@ -70,7 +69,7 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 	 * @param indexOperationsProvider must not be {@literal null}.
 	 */
 	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider) {
-		this(mappingContext, indexOperationsProvider, new MongoPersistentEntityIndexResolver(mappingContext), indexOperationsProvider.getExceptionTranslator());
+		this(mappingContext, indexOperationsProvider, new MongoPersistentEntityIndexResolver(mappingContext));
 	}
 
 	/**
@@ -79,19 +78,16 @@ public class MongoPersistentEntityIndexCreator implements ApplicationListener<Ma
 	 *  @param mappingContext must not be {@literal null}.
 	 * @param indexOperationsProvider must not be {@literal null}.
 	 * @param indexResolver must not be {@literal null}.
-	 * @param exceptionTranslator must not be {@literal null}.
 	 */
 	public MongoPersistentEntityIndexCreator(MongoMappingContext mappingContext, IndexOperationsProvider indexOperationsProvider,
-											 IndexResolver indexResolver, PersistenceExceptionTranslator exceptionTranslator) {
+											 IndexResolver indexResolver) {
 		Assert.notNull(indexOperationsProvider);
 		Assert.notNull(mappingContext);
 		Assert.notNull(indexResolver);
-		Assert.notNull(exceptionTranslator);
 
 		this.indexOperationsProvider = indexOperationsProvider;
 		this.mappingContext = mappingContext;
 		this.indexResolver = indexResolver;
-		this.exceptionTranslator = exceptionTranslator;
 
 		for (MongoPersistentEntity<?> entity : mappingContext.getPersistentEntities()) {
 			checkForIndexes(entity);

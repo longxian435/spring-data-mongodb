@@ -40,11 +40,10 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.Before;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 import org.springframework.core.Constants;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.data.annotation.PersistenceConstructor;
-import org.springframework.data.mongodb.core.ReactiveMongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.convert.DbRefProxyHandler;
@@ -70,7 +69,6 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.reactivestreams.client.Success;
 
 
 /**
@@ -100,7 +98,7 @@ public class ReactivePerformanceTests {
 
 		this.mongo = MongoClients.create();
 
-		ReactiveMongoDbFactory mongoDbFactory = new ReactiveMongoDbFactory(this.mongo, DATABASE_NAME);
+		SimpleReactiveMongoDbFactory mongoDbFactory = new SimpleReactiveMongoDbFactory(this.mongo, DATABASE_NAME);
 
 		MongoMappingContext context = new MongoMappingContext();
 		context.setInitialEntitySet(Collections.singleton(Person.class));
@@ -121,6 +119,11 @@ public class ReactivePerformanceTests {
 			public Document fetch(DBRef dbRef) {
 				return null;
 			}
+
+			@Override
+			public List<Document> bulkFetch(List<DBRef> dbRefs) {
+				return null;
+			}
 		}, context);
 		this.operations = new ReactiveMongoTemplate(mongoDbFactory, converter);
 
@@ -131,6 +134,9 @@ public class ReactivePerformanceTests {
 
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void writeWithWriteConcerns() {
 		executeWithWriteConcerns(new WriteConcernCallback() {
@@ -210,6 +216,9 @@ public class ReactivePerformanceTests {
 		return watch.getLastTaskTimeMillis();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void writeAndRead() throws Exception {
 
@@ -604,8 +613,8 @@ public class ReactivePerformanceTests {
 
 	static class Order implements Convertible {
 
-		static enum Status {
-			ORDERED, PAYED, SHIPPED;
+		enum Status {
+			ORDERED, PAYED, SHIPPED
 		}
 
 		Date createdAt;
@@ -711,8 +720,8 @@ public class ReactivePerformanceTests {
 		return result;
 	}
 
-	static enum AddressType {
-		SHIPPING, BILLING;
+	enum AddressType {
+		SHIPPING, BILLING
 	}
 
 	private interface WriteConcernCallback {
@@ -741,13 +750,13 @@ public class ReactivePerformanceTests {
 		return result;
 	}
 
-	static enum Api {
-		DRIVER, TEMPLATE, REPOSITORY, DIRECT, CONVERTER;
+	enum Api {
+		DRIVER, TEMPLATE, REPOSITORY, DIRECT, CONVERTER
 	}
 
-	static enum Mode {
+	enum Mode {
 		WRITE, READ, QUERY,
-		WRITE_ASYNC;
+		WRITE_ASYNC
 	}
 
 	private static class Statistics {

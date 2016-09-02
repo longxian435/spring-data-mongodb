@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2011 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,36 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.data.mongodb.repository.support;
 
 import java.io.Serializable;
 
 import org.springframework.data.mapping.context.MappingContext;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.util.Assert;
 
 /**
- * {@link org.springframework.beans.factory.FactoryBean} to create {@link MongoRepository} instances.
+ * {@link org.springframework.beans.factory.FactoryBean} to create
+ * {@link org.springframework.data.mongodb.repository.ReactiveMongoRepository} instances.
  * 
- * @author Oliver Gierke
+ * @author Mark Paluch
+ * @since 2.0
+ * @see org.springframework.data.repository.reactive.ReactivePagingAndSortingRepository
+ * @see org.springframework.data.repository.reactive.RxJavaPagingAndSortingRepository
  */
-public class MongoRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extends Serializable> extends
-		RepositoryFactoryBeanSupport<T, S, ID> {
+public class ReactiveMongoRepositoryFactoryBean<T extends Repository<S, ID>, S, ID extends Serializable>
+		extends RepositoryFactoryBeanSupport<T, S, ID> {
 
-	private MongoOperations operations;
+	private ReactiveMongoOperations operations;
 	private boolean createIndexesForQueryMethods = false;
 	private boolean mappingContextConfigured = false;
 
 	/**
-	 * Configures the {@link MongoOperations} to be used.
+	 * Configures the {@link ReactiveMongoOperations} to be used.
 	 * 
 	 * @param operations the operations to set
 	 */
-	public void setMongoOperations(MongoOperations operations) {
+	public void setReactiveMongoOperations(ReactiveMongoOperations operations) {
 		this.operations = operations;
 	}
 
@@ -79,7 +83,8 @@ public class MongoRepositoryFactoryBean<T extends Repository<S, ID>, S, ID exten
 		RepositoryFactorySupport factory = getFactoryInstance(operations);
 
 		if (createIndexesForQueryMethods) {
-			factory.addQueryCreationListener(new IndexEnsuringQueryCreationListener(collectionName -> operations.indexOps(collectionName)));
+			factory.addQueryCreationListener(
+					new IndexEnsuringQueryCreationListener(collectionName -> operations.indexOps(collectionName)));
 		}
 
 		return factory;
@@ -91,8 +96,8 @@ public class MongoRepositoryFactoryBean<T extends Repository<S, ID>, S, ID exten
 	 * @param operations
 	 * @return
 	 */
-	protected RepositoryFactorySupport getFactoryInstance(MongoOperations operations) {
-		return new MongoRepositoryFactory(operations);
+	protected RepositoryFactorySupport getFactoryInstance(ReactiveMongoOperations operations) {
+		return new ReactiveMongoRepositoryFactory(operations);
 	}
 
 	/*
@@ -106,7 +111,7 @@ public class MongoRepositoryFactoryBean<T extends Repository<S, ID>, S, ID exten
 	public void afterPropertiesSet() {
 
 		super.afterPropertiesSet();
-		Assert.notNull(operations, "MongoTemplate must not be null!");
+		Assert.notNull(operations, "ReactiveMongoTemplate must not be null!");
 
 		if (!mappingContextConfigured) {
 			setMappingContext(operations.getConverter().getMappingContext());

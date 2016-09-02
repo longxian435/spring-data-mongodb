@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.data.mongodb.config;
 
 import static org.hamcrest.Matchers.*;
@@ -31,7 +32,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.AbstractApplicationContext;
-import org.springframework.data.mongodb.MongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoTypeMapper;
 import org.springframework.data.mongodb.core.mapping.BasicMongoPersistentEntity;
@@ -40,45 +41,45 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-
 import example.first.First;
 import example.second.Second;
 
+import com.mongodb.Mongo;
+import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.reactivestreams.client.MongoClients;
+
 /**
- * Unit tests for {@link AbstractMongoConfiguration}.
+ * Unit tests for {@link AbstractReactiveMongoConfiguration}.
  * 
- * @author Oliver Gierke
- * @author Thomas Darimont
  * @author Mark Paluch
  */
-public class AbstractMongoConfigurationUnitTests {
+public class AbstractReactiveMongoConfigurationUnitTests {
 
 	@Rule public ExpectedException exception = ExpectedException.none();
 
 	/**
-	 * @see DATAMONGO-496
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void usesConfigClassPackageAsBaseMappingPackage() throws ClassNotFoundException {
 
-		AbstractMongoConfiguration configuration = new SampleMongoConfiguration();
-		assertThat(configuration.getMappingBasePackage(), is(SampleMongoConfiguration.class.getPackage().getName()));
+		AbstractReactiveMongoConfiguration configuration = new SampleMongoConfiguration();
+		assertThat(configuration.getMappingBasePackages(), hasItem(SampleMongoConfiguration.class.getPackage().getName()));
 		assertThat(configuration.getInitialEntitySet(), hasSize(2));
 		assertThat(configuration.getInitialEntitySet(), hasItem(Entity.class));
 	}
 
 	/**
-	 * @see DATAMONGO-496
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void doesNotScanPackageIfMappingPackageIsNull() throws ClassNotFoundException {
+
 		assertScanningDisabled(null);
 	}
 
 	/**
-	 * @see DATAMONGO-496
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void doesNotScanPackageIfMappingPackageIsEmpty() throws ClassNotFoundException {
@@ -88,14 +89,14 @@ public class AbstractMongoConfigurationUnitTests {
 	}
 
 	/**
-	 * @see DATAMONGO-569
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void containsMongoDbFactoryButNoMongoBean() {
 
 		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SampleMongoConfiguration.class);
 
-		assertThat(context.getBean(MongoDbFactory.class), is(notNullValue()));
+		assertThat(context.getBean(SimpleReactiveMongoDbFactory.class), is(notNullValue()));
 
 		exception.expect(NoSuchBeanDefinitionException.class);
 		context.getBean(Mongo.class);
@@ -114,7 +115,7 @@ public class AbstractMongoConfigurationUnitTests {
 	}
 
 	/**
-	 * @see DATAMONGO-717
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void lifecycleCallbacksAreInvokedInAppropriateOrder() {
@@ -129,7 +130,7 @@ public class AbstractMongoConfigurationUnitTests {
 	}
 
 	/**
-	 * @see DATAMONGO-725
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	public void shouldBeAbleToConfigureCustomTypeMapperViaJavaConfig() {
@@ -144,15 +145,7 @@ public class AbstractMongoConfigurationUnitTests {
 	}
 
 	/**
-	 * @see DATAMONGO-789
-	 */
-	@Test
-	public void authenticationDatabaseShouldDefaultToNull() {
-		assertThat(new SampleMongoConfiguration().getAuthenticationDatabaseName(), is(nullValue()));
-	}
-
-	/**
-	 * @see DATAMONGO-1470
+	 * @see DATAMONGO-1444
 	 */
 	@Test
 	@SuppressWarnings("unchecked")
@@ -167,7 +160,7 @@ public class AbstractMongoConfigurationUnitTests {
 
 	private static void assertScanningDisabled(final String value) throws ClassNotFoundException {
 
-		AbstractMongoConfiguration configuration = new SampleMongoConfiguration() {
+		AbstractReactiveMongoConfiguration configuration = new SampleMongoConfiguration() {
 			@Override
 			protected Collection<String> getMappingBasePackages() {
 				return Collections.singleton(value);
@@ -179,7 +172,7 @@ public class AbstractMongoConfigurationUnitTests {
 	}
 
 	@Configuration
-	static class SampleMongoConfiguration extends AbstractMongoConfiguration {
+	static class SampleMongoConfiguration extends AbstractReactiveMongoConfiguration {
 
 		@Override
 		protected String getDatabaseName() {
@@ -187,8 +180,8 @@ public class AbstractMongoConfigurationUnitTests {
 		}
 
 		@Override
-		public Mongo mongo() throws Exception {
-			return new MongoClient();
+		public MongoClient mongoClient() throws Exception {
+			return MongoClients.create();
 		}
 
 		@Bean
@@ -207,7 +200,7 @@ public class AbstractMongoConfigurationUnitTests {
 		}
 	}
 
-	static class ConfigurationWithMultipleBasePackages extends AbstractMongoConfiguration {
+	static class ConfigurationWithMultipleBasePackages extends AbstractReactiveMongoConfiguration {
 
 		@Override
 		protected String getDatabaseName() {
@@ -215,8 +208,8 @@ public class AbstractMongoConfigurationUnitTests {
 		}
 
 		@Override
-		public Mongo mongo() throws Exception {
-			return new MongoClient();
+		public MongoClient mongoClient() throws Exception {
+			return MongoClients.create();
 		}
 
 		@Override

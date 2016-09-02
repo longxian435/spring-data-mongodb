@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.data.mongodb.repository.config;
 
 import java.lang.annotation.Annotation;
@@ -30,8 +31,8 @@ import org.springframework.data.config.ParsingUtils;
 import org.springframework.data.mongodb.config.BeanNames;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.support.MongoRepositoryFactoryBean;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactoryBean;
 import org.springframework.data.repository.config.AnnotationRepositoryConfigurationSource;
 import org.springframework.data.repository.config.RepositoryConfiguration;
 import org.springframework.data.repository.config.RepositoryConfigurationExtension;
@@ -45,14 +46,13 @@ import org.springframework.data.repository.reactive.RxJavaCrudRepository;
 import org.w3c.dom.Element;
 
 /**
- * {@link RepositoryConfigurationExtension} for MongoDB.
+ * Reactive {@link RepositoryConfigurationExtension} for MongoDB.
  * 
- * @author Oliver Gierke
  * @author Mark Paluch
  */
-public class MongoRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
+public class ReactiveMongoRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
-	private static final String MONGO_TEMPLATE_REF = "mongo-template-ref";
+	private static final String MONGO_TEMPLATE_REF = "reactive-mongo-template-ref";
 	private static final String CREATE_QUERY_INDEXES = "create-query-indexes";
 
 	private boolean fallbackMappingContextCreated = false;
@@ -63,7 +63,7 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 	 */
 	@Override
 	public String getModuleName() {
-		return "MongoDB";
+		return "Reactive MongoDB";
 	}
 
 	/* 
@@ -80,7 +80,7 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 	 * @see org.springframework.data.repository.config.RepositoryConfigurationExtension#getRepositoryFactoryClassName()
 	 */
 	public String getRepositoryFactoryClassName() {
-		return MongoRepositoryFactoryBean.class.getName();
+		return ReactiveMongoRepositoryFactoryBean.class.getName();
 	}
 
 	/* 
@@ -98,7 +98,7 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 	 */
 	@Override
 	protected Collection<Class<?>> getIdentifyingTypes() {
-		return Collections.singleton(MongoRepository.class);
+		return Collections.singleton(ReactiveMongoRepository.class);
 	}
 
 	/* 
@@ -122,7 +122,7 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 
 		Element element = config.getElement();
 
-		ParsingUtils.setPropertyReference(builder, element, MONGO_TEMPLATE_REF, "mongoOperations");
+		ParsingUtils.setPropertyReference(builder, element, MONGO_TEMPLATE_REF, "reactiveMongoOperations");
 		ParsingUtils.setPropertyValue(builder, element, CREATE_QUERY_INDEXES, "createIndexesForQueryMethods");
 	}
 
@@ -135,7 +135,7 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 
 		AnnotationAttributes attributes = config.getAttributes();
 
-		builder.addPropertyReference("mongoOperations", attributes.getString("mongoTemplateRef"));
+		builder.addPropertyReference("reactiveMongoOperations", attributes.getString("reactiveMongoTemplateRef"));
 		builder.addPropertyValue("createIndexesForQueryMethods", attributes.getBoolean("createIndexesForQueryMethods"));
 	}
 
@@ -165,26 +165,17 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 		Collection<RepositoryConfiguration<T>> repositoryConfigurations = super.getRepositoryConfigurations(configSource,
 				loader, strictMatchesOnly);
 
-		if (ReactiveWrappers.PROJECT_REACTOR_PRESENT || ReactiveWrappers.RXJAVA1_PRESENT) {
+		return repositoryConfigurations.stream().filter(configuration -> {
 
-			return repositoryConfigurations.stream().filter(configuration -> {
+			Class<?> repositoryInterface = super.loadRepositoryInterface(configuration, loader);
 
-				Class<?> repositoryInterface = super.loadRepositoryInterface(configuration, loader);
-
-				if (ReactiveWrappers.PROJECT_REACTOR_PRESENT
-						&& ReactiveCrudRepository.class.isAssignableFrom(repositoryInterface)) {
-					return false;
-				}
-
-				if (ReactiveWrappers.RXJAVA1_PRESENT
-						&& RxJavaCrudRepository.class.isAssignableFrom(repositoryInterface)) {
-					return false;
-				}
-
+			if (ReactiveWrappers.PROJECT_REACTOR_PRESENT
+					&& ReactiveCrudRepository.class.isAssignableFrom(repositoryInterface)) {
 				return true;
-			}).collect(Collectors.toList());
-		}
+			}
 
-		return repositoryConfigurations;
+			return ReactiveWrappers.RXJAVA1_PRESENT
+					&& RxJavaCrudRepository.class.isAssignableFrom(repositoryInterface);
+		}).collect(Collectors.toList());
 	}
 }

@@ -21,8 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.domain.reactive.ReactivePageImpl;
-import org.springframework.data.mongodb.domain.reactive.ReactiveSliceImpl;
+import org.springframework.data.mongodb.repository.support.ReactivePageImpl;
+import org.springframework.data.mongodb.repository.support.ReactiveSliceImpl;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.ReturnedType;
 import org.springframework.util.ClassUtils;
@@ -48,7 +48,7 @@ interface ReactiveMongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class CollectionExecution implements ReactiveMongoQueryExecution {
+	final class CollectionExecution implements ReactiveMongoQueryExecution {
 
 		private final @NonNull ReactiveMongoOperations operations;
 		private final Pageable pageable;
@@ -60,12 +60,29 @@ interface ReactiveMongoQueryExecution {
 	}
 
 	/**
+	 * {@link ReactiveMongoQueryExecution} for collection returning queries using tailable cursors.
+	 *
+	 * @author Mark Paluch
+	 */
+	@RequiredArgsConstructor
+	final class TailExecution implements ReactiveMongoQueryExecution {
+
+		private final @NonNull ReactiveMongoOperations operations;
+		private final Pageable pageable;
+
+		@Override
+		public Object execute(Query query, Class<?> type, String collection) {
+			return operations.tail(query.with(pageable), type, collection);
+		}
+	}
+
+	/**
 	 * {@link ReactiveMongoQueryExecution} for {@link Slice} query methods.
 	 *
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class SlicedExecution implements ReactiveMongoQueryExecution {
+	final class SlicedExecution implements ReactiveMongoQueryExecution {
 
 		private final @NonNull ReactiveMongoOperations operations;
 		private final @NonNull Pageable pageable;
@@ -89,7 +106,7 @@ interface ReactiveMongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class PagedExecution implements ReactiveMongoQueryExecution {
+	final class PagedExecution implements ReactiveMongoQueryExecution {
 
 		private final @NonNull ReactiveMongoOperations operations;
 		private final @NonNull Pageable pageable;
@@ -120,7 +137,7 @@ interface ReactiveMongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class SingleEntityExecution implements ReactiveMongoQueryExecution {
+	final class SingleEntityExecution implements ReactiveMongoQueryExecution {
 
 		private final ReactiveMongoOperations operations;
 		private final boolean countProjection;
@@ -137,7 +154,7 @@ interface ReactiveMongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class DeleteExecution implements ReactiveMongoQueryExecution {
+	final class DeleteExecution implements ReactiveMongoQueryExecution {
 
 		private final ReactiveMongoOperations operations;
 		private final MongoQueryMethod method;
@@ -162,7 +179,7 @@ interface ReactiveMongoQueryExecution {
 	 * processing.
 	 */
 	@RequiredArgsConstructor
-	static final class ResultProcessingExecution implements ReactiveMongoQueryExecution {
+	final class ResultProcessingExecution implements ReactiveMongoQueryExecution {
 
 		private final @NonNull ReactiveMongoQueryExecution delegate;
 		private final @NonNull Converter<Object, Object> converter;
@@ -179,7 +196,7 @@ interface ReactiveMongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class ResultProcessingConverter implements Converter<Object, Object> {
+	final class ResultProcessingConverter implements Converter<Object, Object> {
 
 		private final @NonNull ResultProcessor processor;
 		private final @NonNull ReactiveMongoOperations operations;

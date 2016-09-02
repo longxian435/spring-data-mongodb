@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.mongodb.domain.reactive;
+package org.springframework.data.mongodb.repository.support;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -85,5 +85,4 @@ public class ReactiveSliceImplUnitTests {
 		assertThat(transformed.getContent(), hasSize(2));
 		assertThat(transformed.getContent(), contains(3, 3));
 	}
-
 }

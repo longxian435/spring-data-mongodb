@@ -15,7 +15,6 @@
  */
 package org.springframework.data.mongodb.core;
 
-import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.mongodb.MongoDbFactory;
 
 /**
@@ -37,18 +36,10 @@ class DefaultIndexOperationsProvider implements IndexOperationsProvider {
 	}
 
 	/* (non-Javadoc)
-	 * @see org.springframework.data.mongodb.core.IndexOperationsProvider#indexOps(java.lang.String)
+	 * @see org.springframework.data.mongodb.core.IndexOperationsProvider#reactiveIndexOps(java.lang.String)
 	 */
 	@Override
 	public IndexOperations indexOps(String collectionName) {
 		return new DefaultIndexOperations(mongoDbFactory, collectionName);
-	}
-
-	/* (non-Javadoc)
-	 * @see org.springframework.data.mongodb.core.IndexOperationsProvider#getExceptionTranslator()
-	 */
-	@Override
-	public PersistenceExceptionTranslator getExceptionTranslator() {
-		return mongoDbFactory.getExceptionTranslator();
 	}
 }

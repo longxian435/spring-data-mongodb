@@ -44,8 +44,7 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import lombok.Data;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import static reactor.core.publisher.Signal.subscribe;
-import reactor.core.test.TestSubscriber;
+import reactor.test.TestSubscriber;
 
 /**
  * Integration test for {@link MongoTemplate}.
@@ -59,7 +58,7 @@ public class ReactiveMongoTemplateIndexTests {
 	private static final org.springframework.data.util.Version TWO_DOT_EIGHT = org.springframework.data.util.Version
 			.parse("2.8");
 
-	@Autowired ReactiveMongoDbFactory factory;
+	@Autowired SimpleReactiveMongoDbFactory factory;
 	@Autowired ReactiveMongoTemplate template;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();
@@ -87,9 +86,12 @@ public class ReactiveMongoTemplateIndexTests {
 		template.dropCollection(Person.class).block();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	@SuppressWarnings("deprecation")
-	public void testEnsureIndexShouldCreateIndex() throws Exception {
+	public void testEnsureIndexShouldCreateIndex() {
 
 		Person p1 = new Person("Oliver");
 		p1.setAge(25);
@@ -98,7 +100,8 @@ public class ReactiveMongoTemplateIndexTests {
 		p2.setAge(40);
 		template.insert(p2);
 
-		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).block();
+		template.reactiveIndexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP))
+				.block();
 
 		MongoCollection<Document> coll = template.getCollection(template.getCollectionName(Person.class));
 		List<Document> indexInfo = Flux.from(coll.listIndexes()).collectList().block();
@@ -106,46 +109,38 @@ public class ReactiveMongoTemplateIndexTests {
 		assertThat(indexInfo.size(), is(2));
 		Object indexKey = null;
 		boolean unique = false;
-		boolean dropDupes = false;
 		for (org.bson.Document ix : indexInfo) {
 
 			if ("age_-1".equals(ix.get("name"))) {
 				indexKey = ix.get("key");
 				unique = (Boolean) ix.get("unique");
-				if (mongoVersion.isLessThan(TWO_DOT_EIGHT)) {
-					dropDupes = (Boolean) ix.get("dropDups");
-					assertThat(dropDupes, is(true));
-				} else {
-					assertThat(ix.get("dropDups"), is(nullValue()));
-				}
 			}
 		}
 		assertThat(((org.bson.Document) indexKey), hasEntry("age", -1));
 		assertThat(unique, is(true));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	@SuppressWarnings("deprecation")
-	public void getIndexInfoShouldReturnCorrectIndex() throws Exception {
+	public void getIndexInfoShouldReturnCorrectIndex() {
 
 		Person p1 = new Person("Oliver");
 		p1.setAge(25);
 		template.insert(p1).block();
 
-		template.indexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP)).block();
+		template.reactiveIndexOps(Person.class).ensureIndex(new Index().on("age", Direction.DESC).unique(Duplicates.DROP))
+				.block();
 
-		List<IndexInfo> indexInfoList = Flux.from(template.indexOps(Person.class).getIndexInfo()).collectList().block();
+		List<IndexInfo> indexInfoList = Flux.from(template.reactiveIndexOps(Person.class).getIndexInfo()).collectList()
+				.block();
 		assertThat(indexInfoList.size(), is(2));
 
 		IndexInfo ii = indexInfoList.get(1);
 		assertThat(ii.isUnique(), is(true));
-
-		if (mongoVersion.isLessThan(TWO_DOT_EIGHT)) {
-			assertThat(ii.isDropDuplicates(), is(true));
-		} else {
-			assertThat(ii.isDropDuplicates(), is(false));
-		}
-
+		assertThat(ii.isDropDuplicates(), is(false));
 		assertThat(ii.isSparse(), is(false));
 
 		List<IndexField> indexFields = ii.getIndexFields();
@@ -154,14 +149,18 @@ public class ReactiveMongoTemplateIndexTests {
 		assertThat(field, is(IndexField.create("age", Direction.DESC)));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void testReadIndexInfoForIndicesCreatedViaMongoShellCommands() throws Exception {
+	public void testReadIndexInfoForIndicesCreatedViaMongoShellCommands() {
 
 		String command = "db." + template.getCollectionName(Person.class)
 				+ ".createIndex({'age':-1}, {'unique':true, 'sparse':true}), 1";
-		template.indexOps(Person.class).dropAllIndexes().block();
+		template.reactiveIndexOps(Person.class).dropAllIndexes().block();
 
-		TestSubscriber<IndexInfo> subscriber = TestSubscriber.subscribe(template.indexOps(Person.class).getIndexInfo());
+		TestSubscriber<IndexInfo> subscriber = TestSubscriber
+				.subscribe(template.reactiveIndexOps(Person.class).getIndexInfo());
 		subscriber.await().assertComplete().assertNoValues();
 
 		Mono.from(factory.getMongoDatabase().runCommand(new org.bson.Document("eval", command))).block();
@@ -183,7 +182,7 @@ public class ReactiveMongoTemplateIndexTests {
 		assertThat(indexKey, hasEntry("age", -1D));
 		assertThat(unique, is(true));
 
-		List<IndexInfo> indexInfos = template.indexOps(Person.class).getIndexInfo().collectList().block();
+		List<IndexInfo> indexInfos = template.reactiveIndexOps(Person.class).getIndexInfo().collectList().block();
 
 		IndexInfo info = indexInfos.get(1);
 		assertThat(info.isUnique(), is(true));
@@ -208,5 +207,4 @@ public class ReactiveMongoTemplateIndexTests {
 			this.field = field;
 		}
 	}
-
 }

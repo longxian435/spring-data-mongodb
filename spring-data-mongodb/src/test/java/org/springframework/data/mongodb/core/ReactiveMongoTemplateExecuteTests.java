@@ -41,7 +41,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import reactor.core.publisher.Flux;
-import reactor.core.test.TestSubscriber;
+import reactor.test.TestSubscriber;
 
 /**
  * Integration test for {@link ReactiveMongoTemplate} execute methods.
@@ -54,7 +54,7 @@ public class ReactiveMongoTemplateExecuteTests {
 
 	private static final org.springframework.data.util.Version THREE = org.springframework.data.util.Version.parse("3.0");
 
-	@Autowired ReactiveMongoDbFactory factory;
+	@Autowired SimpleReactiveMongoDbFactory factory;
 	@Autowired ReactiveMongoOperations operations;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();
@@ -82,6 +82,12 @@ public class ReactiveMongoTemplateExecuteTests {
 		operations.dropCollection("execute_index_test").block();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandJsonCommandShouldReturnSingleResponse() throws Exception {
 
@@ -90,6 +96,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		assertThat(document, hasKey("version"));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandDocumentCommandShouldReturnSingleResponse() throws Exception {
 
@@ -98,6 +107,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		assertThat(document, hasKey("version"));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandJsonCommandShouldReturnMultipleResponses() throws Exception {
 
@@ -116,6 +128,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		});
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandJsonCommandShouldTranslateExceptions() throws Exception {
 
@@ -124,6 +139,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandDocumentCommandShouldTranslateExceptions() throws Exception {
 
@@ -133,6 +151,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeCommandWithReadPreferenceCommandShouldTranslateExceptions() throws Exception {
 
@@ -142,6 +163,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		testSubscriber.await().assertError(InvalidDataAccessApiUsageException.class);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeOnDatabaseShouldExecuteCommand() throws Exception {
 
@@ -157,6 +181,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		assertThat(documents, hasSize(3));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeOnDatabaseShouldDeferExecution() throws Exception {
 
@@ -167,6 +194,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		// the assertion here is that the exception is not thrown
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeOnDatabaseShouldShouldTranslateExceptions() throws Exception {
 
@@ -181,6 +211,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		testSubscriber.await().assertError(UncategorizedMongoDbException.class);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeOnCollectionWithTypeShouldReturnFindResults() throws Exception {
 
@@ -194,6 +227,9 @@ public class ReactiveMongoTemplateExecuteTests {
 		testSubscriber.awaitAndAssertNextValueCount(3).assertComplete();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void executeOnCollectionWithNameShouldReturnFindResults() throws Exception {
 
