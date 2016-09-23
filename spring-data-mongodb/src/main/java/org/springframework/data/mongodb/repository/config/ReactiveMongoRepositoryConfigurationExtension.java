@@ -39,10 +39,6 @@ import org.springframework.data.repository.config.RepositoryConfigurationExtensi
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
 import org.springframework.data.repository.config.RepositoryConfigurationSource;
 import org.springframework.data.repository.config.XmlRepositoryConfigurationSource;
-import org.springframework.data.repository.query.ReactiveWrapperConverters;
-import org.springframework.data.repository.query.ReactiveWrappers;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import org.springframework.data.repository.reactive.RxJavaCrudRepository;
 import org.w3c.dom.Element;
 
 /**
@@ -168,14 +164,8 @@ public class ReactiveMongoRepositoryConfigurationExtension extends RepositoryCon
 		return repositoryConfigurations.stream().filter(configuration -> {
 
 			Class<?> repositoryInterface = super.loadRepositoryInterface(configuration, loader);
+			return RepositoryType.isReactiveRepository(repositoryInterface);
 
-			if (ReactiveWrappers.PROJECT_REACTOR_PRESENT
-					&& ReactiveCrudRepository.class.isAssignableFrom(repositoryInterface)) {
-				return true;
-			}
-
-			return ReactiveWrappers.RXJAVA1_PRESENT
-					&& RxJavaCrudRepository.class.isAssignableFrom(repositoryInterface);
 		}).collect(Collectors.toList());
 	}
 }

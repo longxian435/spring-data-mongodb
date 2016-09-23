@@ -47,6 +47,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.Person.Sex;
 import org.springframework.data.mongodb.repository.support.ReactiveMongoRepositoryFactory;
 import org.springframework.data.mongodb.repository.support.SimpleReactiveMongoRepository;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.DefaultEvaluationContextProvider;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -321,7 +322,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 		Flux<Person> findStringQuery(Flux<String> lastname, Mono<Integer> age);
 	}
 
-	interface ReactiveCappedCollectionRepository extends ReactiveMongoRepository<Capped, String> {
+	interface ReactiveCappedCollectionRepository extends Repository<Capped, String> {
 
 		@InfiniteStream
 		Flux<Capped> findByKey(String key);

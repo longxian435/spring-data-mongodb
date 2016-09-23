@@ -165,23 +165,13 @@ public class MongoRepositoryConfigurationExtension extends RepositoryConfigurati
 		Collection<RepositoryConfiguration<T>> repositoryConfigurations = super.getRepositoryConfigurations(configSource,
 				loader, strictMatchesOnly);
 
-		if (ReactiveWrappers.PROJECT_REACTOR_PRESENT || ReactiveWrappers.RXJAVA1_PRESENT) {
+		if (ReactiveWrappers.isAvailable()) {
 
 			return repositoryConfigurations.stream().filter(configuration -> {
 
 				Class<?> repositoryInterface = super.loadRepositoryInterface(configuration, loader);
+				return !RepositoryType.isReactiveRepository(repositoryInterface);
 
-				if (ReactiveWrappers.PROJECT_REACTOR_PRESENT
-						&& ReactiveCrudRepository.class.isAssignableFrom(repositoryInterface)) {
-					return false;
-				}
-
-				if (ReactiveWrappers.RXJAVA1_PRESENT
-						&& RxJavaCrudRepository.class.isAssignableFrom(repositoryInterface)) {
-					return false;
-				}
-
-				return true;
 			}).collect(Collectors.toList());
 		}
 
