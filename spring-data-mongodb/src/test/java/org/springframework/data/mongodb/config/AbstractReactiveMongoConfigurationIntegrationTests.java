@@ -24,7 +24,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -48,7 +48,7 @@ public class AbstractReactiveMongoConfigurationIntegrationTests {
 	@Test
 	public void contextShouldContainTemplate() {
 
-		assertThat(context.getBean(SimpleReactiveMongoDbFactory.class)).isNotNull();
+		assertThat(context.getBean(SimpleReactiveMongoDatabaseFactory.class)).isNotNull();
 		assertThat(context.getBean(ReactiveMongoOperations.class)).isNotNull();
 		assertThat(context.getBean(ReactiveMongoTemplate.class)).isNotNull();
 	}
@@ -57,7 +57,7 @@ public class AbstractReactiveMongoConfigurationIntegrationTests {
 	static class ReactiveConfiguration extends AbstractReactiveMongoConfiguration {
 
 		@Override
-		public MongoClient mongoClient() throws Exception {
+		public MongoClient mongoClient() {
 			return MongoClients.create();
 		}
 

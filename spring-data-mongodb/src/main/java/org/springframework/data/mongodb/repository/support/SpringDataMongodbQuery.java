@@ -58,8 +58,6 @@ class SpringDataMongodbQuery<T> extends AbstractMongodbQuery<T, SpringDataMongod
 
 					@Override
 					public T apply(DBObject input) {
-
-						System.out.println(input.toString());
 						return operations.getConverter().read(type, (BasicDBObject) input);
 					}
 				}, new SpringDataMongodbSerializer(operations.getConverter()));

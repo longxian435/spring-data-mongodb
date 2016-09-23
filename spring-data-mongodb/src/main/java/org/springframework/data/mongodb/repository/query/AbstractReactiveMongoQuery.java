@@ -24,6 +24,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.CollectionExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.DeleteExecution;
+import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.GeoNearExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.PagedExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.ResultProcessingConverter;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.ResultProcessingExecution;
@@ -143,6 +144,8 @@ public abstract class AbstractReactiveMongoQuery implements RepositoryQuery {
 
 		if (isDeleteQuery()) {
 			return new DeleteExecution(operations, method);
+		} else if (method.isGeoNearQuery()) {
+			return new GeoNearExecution(operations, accessor, method.getReturnType());
 		} else if (method.isSliceQuery()) {
 			return new SlicedExecution(operations, accessor.getPageable());
 		} else if (isInfiniteStream(method)) {

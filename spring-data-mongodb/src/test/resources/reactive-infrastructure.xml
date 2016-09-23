@@ -8,7 +8,7 @@
 		<property name="port" value="27017"/>
 	</bean>
 
-	<bean id="reactiveMongoDbFactory" class="org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory">
+	<bean id="reactiveMongoDbFactory" class="org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory">
 		<constructor-arg name="mongoClient" ref="mongoClient"/>
 		<constructor-arg name="databaseName" value="reactive"/>
 	</bean>

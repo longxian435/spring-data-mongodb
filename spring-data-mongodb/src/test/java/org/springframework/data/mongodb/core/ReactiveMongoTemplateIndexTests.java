@@ -58,7 +58,7 @@ public class ReactiveMongoTemplateIndexTests {
 	private static final org.springframework.data.util.Version TWO_DOT_EIGHT = org.springframework.data.util.Version
 			.parse("2.8");
 
-	@Autowired SimpleReactiveMongoDbFactory factory;
+	@Autowired SimpleReactiveMongoDatabaseFactory factory;
 	@Autowired ReactiveMongoTemplate template;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();

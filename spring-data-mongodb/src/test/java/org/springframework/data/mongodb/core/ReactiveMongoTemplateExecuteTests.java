@@ -54,7 +54,7 @@ public class ReactiveMongoTemplateExecuteTests {
 
 	private static final org.springframework.data.util.Version THREE = org.springframework.data.util.Version.parse("3.0");
 
-	@Autowired SimpleReactiveMongoDbFactory factory;
+	@Autowired SimpleReactiveMongoDatabaseFactory factory;
 	@Autowired ReactiveMongoOperations operations;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();

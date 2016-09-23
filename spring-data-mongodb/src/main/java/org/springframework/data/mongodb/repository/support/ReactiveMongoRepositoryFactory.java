@@ -17,9 +17,12 @@ package org.springframework.data.mongodb.repository.support;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.data.geo.GeoResult;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
@@ -28,6 +31,7 @@ import org.springframework.data.mongodb.core.mapping.MongoPersistentProperty;
 import org.springframework.data.mongodb.repository.query.MongoEntityInformation;
 import org.springframework.data.mongodb.repository.query.MongoQueryMethod;
 import org.springframework.data.mongodb.repository.query.PartTreeMongoQuery;
+import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryMethod;
 import org.springframework.data.mongodb.repository.query.ReactivePartTreeMongoQuery;
 import org.springframework.data.mongodb.repository.query.ReactiveStringBasedMongoQuery;
 import org.springframework.data.projection.ProjectionFactory;
@@ -38,7 +42,6 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 import org.springframework.data.repository.query.EvaluationContextProvider;
 import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
-import org.springframework.data.repository.query.ReactiveWrappers;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.util.QueryExecutionConverters;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -51,6 +54,9 @@ import org.springframework.util.Assert;
  * @since 2.0
  */
 public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
+
+	@SuppressWarnings("unchecked") private static final List<Class<? extends Serializable>> GEO_NEAR_RESULTS = Arrays
+			.asList(GeoResult.class);
 
 	private static final SpelExpressionParser EXPRESSION_PARSER = new SpelExpressionParser();
 
@@ -173,38 +179,6 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 			} else {
 				return new ReactivePartTreeMongoQuery(queryMethod, operations, conversionService);
 			}
-		}
-	}
-
-	private static class ReactiveMongoQueryMethod extends MongoQueryMethod {
-
-		private Method method;
-
-		ReactiveMongoQueryMethod(Method method, RepositoryMetadata metadata, ProjectionFactory projectionFactory,
-				MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext) {
-			super(method, metadata, projectionFactory, mappingContext);
-
-			this.method = method;
-		}
-
-		@Override
-		public boolean isCollectionQuery() {
-			return !(isPageQuery() || isSliceQuery()) && ReactiveWrappers.isMultiType(method.getReturnType());
-		}
-
-		@Override
-		public boolean isModifyingQuery() {
-			return super.isModifyingQuery();
-		}
-
-		@Override
-		public boolean isQueryForEntity() {
-			return super.isQueryForEntity();
-		}
-
-		@Override
-		public boolean isStreamQuery() {
-			return false;
 		}
 	}
 }

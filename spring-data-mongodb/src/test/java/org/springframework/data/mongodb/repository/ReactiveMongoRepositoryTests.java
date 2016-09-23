@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.springframework.data.mongodb.repository;
 
 import static org.hamcrest.Matchers.*;
@@ -41,6 +40,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.geo.Circle;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.Metrics;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.CollectionOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -294,14 +298,91 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 		cancellation.dispose();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void findsPeopleByLocationWithinCircle() {
+
+		Point point = new Point(-73.99171, 40.738868);
+		dave.setLocation(point);
+		repository.save(dave).block();
+
+		repository.findByLocationWithin(new Circle(-78.99171, 45.738868, 170)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValues(dave);
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void findsPeopleByPageableLocationWithinCircle() {
+
+		Point point = new Point(-73.99171, 40.738868);
+		dave.setLocation(point);
+		repository.save(dave).block();
+
+		repository.findByLocationWithin(new Circle(-78.99171, 45.738868, 170), new PageRequest(0, 10)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValues(dave);
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void findsPeopleGeoresultByLocationWithinBox() {
+
+		Point point = new Point(-73.99171, 40.738868);
+		dave.setLocation(point);
+		repository.save(dave).block();
+
+		repository.findByLocationNear(new Point(-73.99, 40.73), new Distance(2000, Metrics.KILOMETERS)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValuesWith(personGeoResult -> {
+
+					assertThat(personGeoResult.getDistance().getValue(), is(closeTo(1, 1)));
+					assertThat(personGeoResult.getContent(), is(equalTo(dave)));
+				});
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void findsPeoplePageableGeoresultByLocationWithinBox() {
+
+		Point point = new Point(-73.99171, 40.738868);
+		dave.setLocation(point);
+		repository.save(dave).block();
+
+		repository.findByLocationNear(new Point(-73.99, 40.73), new Distance(2000, Metrics.KILOMETERS), new PageRequest(0, 10)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValuesWith(personGeoResult -> {
+
+					assertThat(personGeoResult.getDistance().getValue(), is(closeTo(1, 1)));
+					assertThat(personGeoResult.getContent(), is(equalTo(dave)));
+				});
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void findsPeopleByLocationWithinBox() {
+
+		Point point = new Point(-73.99171, 40.738868);
+		dave.setLocation(point);
+		repository.save(dave).block();
+
+		repository.findPersonByLocationNear(new Point(-73.99, 40.73), new Distance(2000, Metrics.KILOMETERS)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValues(dave);
+	}
+
 	interface ReactivePersonRepository extends ReactiveMongoRepository<Person, String> {
 
-		/**
-		 * Returns all {@link Person}s with the given lastname.
-		 *
-		 * @param lastname
-		 * @return
-		 */
 		Flux<Person> findByLastname(String lastname);
 
 		Mono<Person> findOneByLastname(String lastname);
@@ -320,6 +401,16 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 
 		@Query("{ lastname: { $in: ?0 }, age: { $gt : ?1 } }")
 		Flux<Person> findStringQuery(Flux<String> lastname, Mono<Integer> age);
+
+		Flux<Person> findByLocationWithin(Circle circle);
+
+		Flux<Person> findByLocationWithin(Circle circle, Pageable pageable);
+
+		Flux<GeoResult<Person>> findByLocationNear(Point point, Distance maxDistance);
+
+		Flux<GeoResult<Person>> findByLocationNear(Point point, Distance maxDistance, Pageable pageable);
+
+		Flux<Person> findPersonByLocationNear(Point point, Distance maxDistance);
 	}
 
 	interface ReactiveCappedCollectionRepository extends Repository<Capped, String> {

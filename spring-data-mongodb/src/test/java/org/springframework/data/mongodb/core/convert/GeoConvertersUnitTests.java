@@ -169,7 +169,6 @@ public class GeoConvertersUnitTests {
 		GeoCommand cmd = new GeoCommand(box);
 
 		Document dbo = GeoCommandToDbObjectConverter.INSTANCE.convert(cmd);
-		System.out.println();
 
 		assertThat(dbo, is(notNullValue()));
 

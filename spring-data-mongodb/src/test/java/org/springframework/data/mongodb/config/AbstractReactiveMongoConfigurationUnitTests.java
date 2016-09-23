@@ -32,7 +32,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.AbstractApplicationContext;
-import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoTypeMapper;
 import org.springframework.data.mongodb.core.mapping.BasicMongoPersistentEntity;
@@ -96,7 +96,7 @@ public class AbstractReactiveMongoConfigurationUnitTests {
 
 		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SampleMongoConfiguration.class);
 
-		assertThat(context.getBean(SimpleReactiveMongoDbFactory.class), is(notNullValue()));
+		assertThat(context.getBean(SimpleReactiveMongoDatabaseFactory.class), is(notNullValue()));
 
 		exception.expect(NoSuchBeanDefinitionException.class);
 		context.getBean(Mongo.class);

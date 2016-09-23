@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.data.annotation.Id;
@@ -34,8 +35,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
+import org.springframework.data.repository.RepositoryDefinition;
 import org.springframework.data.repository.reactive.ReactivePagingAndSortingRepository;
 import org.springframework.data.repository.reactive.RxJavaPagingAndSortingRepository;
+import org.springframework.stereotype.Repository;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -56,12 +59,11 @@ import rx.Single;
 @ContextConfiguration(classes = ConvertingReactiveMongoRepositoryTests.Config.class)
 public class ConvertingReactiveMongoRepositoryTests {
 
-	@EnableReactiveMongoRepositories(considerNestedRepositories = true)
+	@EnableReactiveMongoRepositories(includeFilters = @Filter(value = Repository.class), considerNestedRepositories = true)
 	@ImportResource("classpath:reactive-infrastructure.xml")
 	static class Config {}
 
 	@Autowired ReactiveMongoTemplate template;
-
 	@Autowired MixedReactivePersonRepostitory reactiveRepository;
 	@Autowired ReactivePersonRepostitory reactivePersonRepostitory;
 	@Autowired RxJavaPersonRepostitory rxJavaPersonRepostitory;
@@ -233,11 +235,13 @@ public class ConvertingReactiveMongoRepositoryTests {
 		assertThat(persons, hasItems(carter, dave));
 	}
 
+	@Repository
 	interface ReactivePersonRepostitory extends ReactivePagingAndSortingRepository<ReactivePerson, String> {
 
 		Publisher<ReactivePerson> findByLastname(String lastname);
 	}
 
+	@Repository
 	interface RxJavaPersonRepostitory extends RxJavaPagingAndSortingRepository<ReactivePerson, String> {
 
 		Observable<ReactivePerson> findByFirstnameAndLastname(String firstname, String lastname);
@@ -247,6 +251,7 @@ public class ConvertingReactiveMongoRepositoryTests {
 		Single<ProjectedPerson> findProjectedByLastname(String lastname);
 	}
 
+	@Repository
 	interface MixedReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
 
 		Single<ReactivePerson> findByLastname(String lastname);

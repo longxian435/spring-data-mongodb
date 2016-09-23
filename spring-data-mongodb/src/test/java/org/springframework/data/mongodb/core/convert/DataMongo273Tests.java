@@ -125,7 +125,6 @@ public class DataMongo273Tests {
 		Document result = new Document();
 		converter.write(shipment, result);
 
-		System.out.println(result.toJson());
 		Shipment shipment2 = converter.read(Shipment.class, result);
 
 		List listOfThings2 = (List) shipment2.getBoxes().get("one");

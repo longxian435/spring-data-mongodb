@@ -48,11 +48,15 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.geo.Metrics;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.MongoTemplateTests.PersonWithConvertedId;
 import org.springframework.data.mongodb.core.MongoTemplateTests.VersionedPerson;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeospatialIndex;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.util.Version;
@@ -75,7 +79,7 @@ import reactor.test.TestSubscriber;
 @ContextConfiguration("classpath:reactive-infrastructure.xml")
 public class ReactiveMongoTemplateTests {
 
-	@Autowired SimpleReactiveMongoDbFactory factory;
+	@Autowired SimpleReactiveMongoDatabaseFactory factory;
 	@Autowired ReactiveMongoTemplate template;
 
 	@Rule public ExpectedException thrown = ExpectedException.none();
@@ -103,6 +107,7 @@ public class ReactiveMongoTemplateTests {
 		template.dropCollection("people") //
 				.and(template.dropCollection("collection")) //
 				.and(template.dropCollection(Person.class)) //
+				.and(template.dropCollection(Venue.class)) //
 				.and(template.dropCollection(PersonWithAList.class)) //
 				.and(template.dropCollection(PersonWithIdPropertyOfTypeObjectId.class)) //
 				.and(template.dropCollection(PersonWithVersionPropertyOfTypeInteger.class)) //
@@ -362,6 +367,77 @@ public class ReactiveMongoTemplateTests {
 		Query q = new Query(Criteria.where("BOGUS").gt(22));
 		Update u = new Update().set("firstName", "Sven");
 		mongoTemplate.updateFirst(q, u, Person.class).block();
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void updateFirstByEntityTypeShouldUpdateObject() throws Exception {
+
+		Person person = new Person("Oliver2", 25);
+		template.insert(person) //
+				.then(template.updateFirst(new Query(Criteria.where("age").is(25)), new Update().set("firstName", "Sven"),
+						Person.class)) //
+				.flatMap(p -> template.find(new Query(Criteria.where("age").is(25)), Person.class))
+				.subscribeWith(TestSubscriber.create()) //
+				.await() //
+				.assertValuesWith(result -> {
+					assertThat(result.getFirstName(), is(equalTo("Sven")));
+				});
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void updateFirstByCollectionNameShouldUpdateObjects() throws Exception {
+
+		Person person = new Person("Oliver2", 25);
+		template.insert(person, "people") //
+				.then(template.updateFirst(new Query(Criteria.where("age").is(25)), new Update().set("firstName", "Sven"),
+						"people")) //
+				.flatMap(p -> template.find(new Query(Criteria.where("age").is(25)), Person.class, "people"))
+				.subscribeWith(TestSubscriber.create()) //
+				.await() //
+				.assertValuesWith(result -> {
+					assertThat(result.getFirstName(), is(equalTo("Sven")));
+				});
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void updateMultiByEntityTypeShouldUpdateObjects() throws Exception {
+
+		Query query = new Query(new Criteria().orOperator(Criteria.where("firstName").is("Walter Jr"),
+				Criteria.where("firstName").is("Walter")));
+
+		template.insertAll(Flux.just(new Person("Walter", 50), new Person("Skyler", 43), new Person("Walter Jr", 16))) //
+				.collectList() //
+				.flatMap(a -> template.updateMulti(query, new Update().set("firstName", "Walt"), Person.class)) //
+				.flatMap(p -> template.find(new Query(Criteria.where("firstName").is("Walt")), Person.class)) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValueCount(2);
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void updateMultiByCollectionNameShouldUpdateObject() throws Exception {
+
+		Query query = new Query(new Criteria().orOperator(Criteria.where("firstName").is("Walter Jr"),
+				Criteria.where("firstName").is("Walter")));
+
+		template
+				.insert(Flux.just(new Person("Walter", 50), new Person("Skyler", 43), new Person("Walter Jr", 16)), "people") //
+				.collectList() //
+				.flatMap(a -> template.updateMulti(query, new Update().set("firstName", "Walt"), Person.class, "people")) //
+				.flatMap(p -> template.find(new Query(Criteria.where("firstName").is("Walt")), Person.class, "people")) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValueCount(2);
 	}
 
 	/**
@@ -639,6 +715,34 @@ public class ReactiveMongoTemplateTests {
 		org.bson.Document result = template.findById(dbObject.get("_id"), org.bson.Document.class, "collection").block();
 		assertThat(result.get("foo"), is(dbObject.get("foo")));
 		assertThat(result.get("_id"), is(dbObject.get("_id")));
+	}
+
+	/**
+	 * @see DATAMONGO-1444
+	 */
+	@Test
+	public void geoNear() {
+
+		List<Venue> venues = Arrays.asList(new Venue("Penn Station", -73.99408, 40.75057), //
+				new Venue("10gen Office", -73.99171, 40.738868), //
+				new Venue("Flatiron Building", -73.988135, 40.741404), //
+				new Venue("Maplewood, NJ", -74.2713, 40.73137));
+
+		template.insertAll(venues).blockLast();
+		template.indexOps(Venue.class).ensureIndex(new GeospatialIndex("location").typed(GeoSpatialIndexType.GEO_2D));
+
+		NearQuery geoFar = NearQuery.near(-73, 40, Metrics.KILOMETERS).num(10).maxDistance(150, Metrics.KILOMETERS);
+
+		template.geoNear(geoFar, Venue.class) //
+				.subscribeWith(TestSubscriber.create()) //
+				.awaitAndAssertNextValueCount(4);
+
+		NearQuery geoNear = NearQuery.near(-73, 40, Metrics.KILOMETERS).num(10).maxDistance(120, Metrics.KILOMETERS);
+
+		template.geoNear(geoNear, Venue.class) //
+				.subscribeWith(TestSubscriber.create()) //
+				.await() //
+				.assertValueCount(3);
 	}
 
 	/**

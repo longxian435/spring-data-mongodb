@@ -51,12 +51,16 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.convert.EntityReader;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.Metric;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.ConvertingPropertyAccessor;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.MongoDbFactory;
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
+import org.springframework.data.mongodb.core.MongoTemplate.DbObjectCallback;
 import org.springframework.data.mongodb.core.convert.DbRefProxyHandler;
 import org.springframework.data.mongodb.core.convert.DbRefResolver;
 import org.springframework.data.mongodb.core.convert.DbRefResolverCallback;
@@ -82,6 +86,7 @@ import org.springframework.data.mongodb.core.mapping.event.BeforeDeleteEvent;
 import org.springframework.data.mongodb.core.mapping.event.BeforeSaveEvent;
 import org.springframework.data.mongodb.core.mapping.event.MongoMappingEvent;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.util.MongoClientVersion;
@@ -119,17 +124,13 @@ import reactor.util.function.Tuple2;
 
 /**
  * Primary implementation of {@link ReactiveMongoOperations}. It simplifies the use of Reactive MongoDB usage and helps
- * to avoid common errors.
- * <p>
- * It executes core MongoDB workflow, leaving application code to provide {@link Document} and extract results. This
- * class executes BSON queries or updates, initiating iteration over {@link FindPublisher} and catching MongoDB
- * exceptions and translating them to the generic, more informative exception hierarchy defined in the
- * org.springframework.dao package.
- * <p>
- * Can be used within a service implementation via direct instantiation with a {@link SimpleReactiveMongoDbFactory} reference,
- * or get prepared in an application context and given to services as bean reference. Note: The
- * {@link SimpleReactiveMongoDbFactory} should always be configured as a bean in the application context, in the first case
- * given to the service directly, in the second case to the prepared template.
+ * to avoid common errors. It executes core MongoDB workflow, leaving application code to provide {@link Document} and
+ * extract results. This class executes BSON queries or updates, initiating iteration over {@link FindPublisher} and
+ * catching MongoDB exceptions and translating them to the generic, more informative exception hierarchy defined in the
+ * org.springframework.dao package. Can be used within a service implementation via direct instantiation with a
+ * {@link SimpleReactiveMongoDatabaseFactory} reference, or get prepared in an application context and given to services as
+ * bean reference. Note: The {@link SimpleReactiveMongoDatabaseFactory} should always be configured as a bean in the
+ * application context, in the first case given to the service directly, in the second case to the prepared template.
  *
  * @author Mark Paluch
  * @since 2.0
@@ -161,6 +162,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	private final QueryMapper queryMapper;
 	private final UpdateMapper updateMapper;
 
+	private int publisherBatchSize = 10;
 	private WriteConcern writeConcern;
 	private WriteConcernResolver writeConcernResolver = DefaultWriteConcernResolver.INSTANCE;
 	private WriteResultChecking writeResultChecking = WriteResultChecking.NONE;
@@ -175,7 +177,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @param databaseName must not be {@literal null} or empty.
 	 */
 	public ReactiveMongoTemplate(MongoClient mongoClient, String databaseName) {
-		this(new SimpleReactiveMongoDbFactory(mongoClient, databaseName), null);
+		this(new SimpleReactiveMongoDatabaseFactory(mongoClient, databaseName), null);
 	}
 
 	/**
@@ -255,6 +257,15 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 */
 	public void setReadPreference(ReadPreference readPreference) {
 		this.readPreference = readPreference;
+	}
+
+	/**
+	 * Used to set a batch size when working with batches of {@link Publisher} emitting items to insert.
+	 *
+	 * @param publisherBatchSize batch size
+	 */
+	public void setPublisherBatchSize(int publisherBatchSize) {
+		this.publisherBatchSize = publisherBatchSize;
 	}
 
 	/*
@@ -469,7 +480,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#createCollection(java.lang.Class, org.springframework.data.mongodb.core.CollectionOptions)
 	 */
 	public <T> Mono<MongoCollection<Document>> createCollection(Class<T> entityClass,
-			CollectionOptions collectionOptions) {
+																CollectionOptions collectionOptions) {
 		return createCollection(determineCollectionName(entityClass), collectionOptions);
 	}
 
@@ -484,7 +495,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#createCollection(java.lang.String, org.springframework.data.mongodb.core.CollectionOptions)
 	 */
 	public Mono<MongoCollection<Document>> createCollection(final String collectionName,
-			final CollectionOptions collectionOptions) {
+															final CollectionOptions collectionOptions) {
 		return doCreateCollection(collectionName, convertToCreateCollectionOptions(collectionOptions));
 	}
 
@@ -632,6 +643,68 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		return doFindOne(collectionName, new Document(idKey, id), null, entityClass);
 	}
 
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#geoNear(org.springframework.data.mongodb.core.query.NearQuery, java.lang.Class)
+	 */
+	@Override
+	public <T> Flux<GeoResult<T>> geoNear(NearQuery near, Class<T> entityClass) {
+		return geoNear(near, entityClass, determineCollectionName(entityClass));
+	}
+
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#geoNear(org.springframework.data.mongodb.core.query.NearQuery, java.lang.Class, java.lang.String)
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T> Flux<GeoResult<T>> geoNear(NearQuery near, Class<T> entityClass, String collectionName) {
+
+		if (near == null) {
+			throw new InvalidDataAccessApiUsageException("NearQuery must not be null!");
+		}
+
+		if (entityClass == null) {
+			throw new InvalidDataAccessApiUsageException("Entity class must not be null!");
+		}
+
+		String collection = StringUtils.hasText(collectionName) ? collectionName : determineCollectionName(entityClass);
+		Document nearDbObject = near.toDocument();
+
+		Document command = new Document("geoNear", collection);
+		command.putAll(nearDbObject);
+
+		return Flux.defer(() -> {
+
+			if (nearDbObject.containsKey("query")) {
+				Document query = (Document) nearDbObject.get("query");
+				command.put("query", queryMapper.getMappedObject(query, getPersistentEntity(entityClass)));
+			}
+
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Executing geoNear using: {} for class: {} in collection: {}", serializeToJsonSafely(command),
+						entityClass, collectionName);
+			}
+
+			GeoNearResultDbObjectCallback<T> callback = new GeoNearResultDbObjectCallback<T>(
+					new ReadDocumentCallback<T>(mongoConverter, entityClass, collectionName), near.getMetric());
+
+			return executeCommand(command, this.readPreference).flatMap(document -> {
+
+				List<Document> l = document.get("results", List.class);
+				if (l == null) {
+					return Flux.empty();
+				}
+				return Flux.fromIterable(l);
+			}).skip(near.getSkip() != null ? near.getSkip() : 0).map(new Function<Document, GeoResult<T>>() {
+				@Override
+				public GeoResult<T> apply(Document object) {
+					return callback.doWith(object);
+				}
+			});
+		});
+	}
+
 	/* (non-Javadoc)
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#findAndModify(org.springframework.data.mongodb.core.query.Query, org.springframework.data.mongodb.core.query.Update, java.lang.Class)
 	 */
@@ -657,7 +730,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#findAndModify(org.springframework.data.mongodb.core.query.Query, org.springframework.data.mongodb.core.query.Update, org.springframework.data.mongodb.core.FindAndModifyOptions, java.lang.Class, java.lang.String)
 	 */
 	public <T> Mono<T> findAndModify(Query query, Update update, FindAndModifyOptions options, Class<T> entityClass,
-			String collectionName) {
+									 String collectionName) {
 		return doFindAndModify(collectionName, query.getQueryObject(), query.getFieldsObject(),
 				getMappedSortObject(query, entityClass), entityClass, update, options);
 	}
@@ -704,7 +777,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 			final Document Document = query == null ? null
 					: queryMapper.getMappedObject(query.getQueryObject(),
-							entityClass == null ? null : mappingContext.getPersistentEntity(entityClass));
+					entityClass == null ? null : mappingContext.getPersistentEntity(entityClass));
 
 			return collection.count(Document);
 		});
@@ -722,7 +795,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#insert(org.reactivestreams.Publisher, java.lang.Class)
 	 */
 	@Override
-	public Mono<Void> insert(Publisher<? extends Object> batchToSave, Class<?> entityClass) {
+	public <T> Flux<T> insert(Publisher<? extends T> batchToSave, Class<?> entityClass) {
 		return insert(batchToSave, determineCollectionName(entityClass));
 	}
 
@@ -730,8 +803,8 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#insert(org.reactivestreams.Publisher, java.lang.String)
 	 */
 	@Override
-	public Mono<Void> insert(Publisher<? extends Object> batchToSave, String collectionName) {
-		return null;
+	public <T> Flux<T> insert(Publisher<? extends T> batchToSave, String collectionName) {
+		return Flux.from(batchToSave).buffer(publisherBatchSize).flatMap(collection -> insert(collection, collectionName));
 	}
 
 	/* (non-Javadoc)
@@ -801,7 +874,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 */
 	@Override
 	public <T> Flux<T> insertAll(Publisher<? extends T> objectsToSave) {
-		return null;
+		return Flux.from(objectsToSave).buffer(publisherBatchSize).flatMap(this::insertAll);
 	}
 
 	protected <T> Flux<T> doInsertAll(Collection<? extends T> listToSave, MongoWriter<Object> writer) {
@@ -831,7 +904,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	}
 
 	protected <T> Flux<T> doInsertBatch(final String collectionName, final Collection<? extends T> batchToSave,
-			final MongoWriter<Object> writer) {
+										final MongoWriter<Object> writer) {
 
 		Assert.notNull(writer);
 
@@ -863,7 +936,6 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 			maybeEmitEvent(new AfterSaveEvent<T>(tuple.getT1(), tuple.getT2(), collectionName));
 			return tuple.getT1();
 		});
-
 	}
 
 	/* (non-Javadoc)
@@ -1022,7 +1094,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	}
 
 	private MongoCollection<Document> prepareCollection(MongoCollection<Document> collection,
-			WriteConcern writeConcernToUse) {
+														WriteConcern writeConcernToUse) {
 		MongoCollection<Document> collectionToUse = collection;
 
 		if (writeConcernToUse != null) {
@@ -1122,12 +1194,12 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @see org.springframework.data.mongodb.core.ReactiveMongoOperations#updateMulti(org.springframework.data.mongodb.core.query.Query, org.springframework.data.mongodb.core.query.Update, java.lang.Class, java.lang.String)
 	 */
 	public Mono<UpdateResult> updateMulti(final Query query, final Update update, Class<?> entityClass,
-			String collectionName) {
+										  String collectionName) {
 		return doUpdate(collectionName, query, update, entityClass, false, true);
 	}
 
 	protected Mono<UpdateResult> doUpdate(final String collectionName, final Query query, final Update update,
-			final Class<?> entityClass, final boolean upsert, final boolean multi) {
+										  final Class<?> entityClass, final boolean upsert, final boolean multi) {
 
 		MongoPersistentEntity<?> entity = entityClass == null ? null : getPersistentEntity(entityClass);
 
@@ -1151,17 +1223,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 			UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
 
-			// TODO hack - split up update and replaces
-			boolean useUpdate = false;
-
-			for (String s : updateObj.keySet()) {
-				if (s.startsWith("$")) {
-					useUpdate = true;
-					break;
-				}
-			}
-
-			if (!useUpdate) {
+			if (!UpdateMapper.isUpdateObject(updateObj)) {
 				return collectionToUse.replaceOne(queryObj, updateObj, updateOptions);
 			}
 			if (multi) {
@@ -1351,7 +1413,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	}
 
 	protected <T> Mono<DeleteResult> doRemove(final String collectionName, final Query query,
-			final Class<T> entityClass) {
+											  final Class<T> entityClass) {
 
 		if (query == null) {
 			throw new InvalidDataAccessApiUsageException("Query passed in to remove can't be null!");
@@ -1375,7 +1437,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("Remove using query: {} in collection: {}.",
-						new Object[] { serializeToJsonSafely(dboq), collectionName });
+						new Object[]{serializeToJsonSafely(dboq), collectionName});
 			}
 
 			return collectionToUse.deleteMany(dboq);
@@ -1434,7 +1496,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		if (query == null) {
 
 			// TODO: clean up
-			LOGGER.debug(String.format("tail for class: %s in collection: %s", entityClass, collectionName));
+			LOGGER.debug(String.format("find for class: %s in collection: %s", entityClass, collectionName));
 
 			return executeFindMultiInternal(
 					collection -> new FindCallback(null).doInCollection(collection).cursorType(CursorType.TailableAwait), null,
@@ -1472,7 +1534,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @return the collection that was created
 	 */
 	protected Mono<MongoCollection<Document>> doCreateCollection(final String collectionName,
-			final CreateCollectionOptions collectionOptions) {
+																 final CreateCollectionOptions collectionOptions) {
 
 		return createMono(db -> db.createCollection(collectionName, collectionOptions)).map(success -> {
 
@@ -1534,17 +1596,17 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @param fields the document that specifies the fields to be returned.
 	 * @param entityClass the parameterized type of the returned list.
 	 * @param preparer allows for customization of the {@link DBCursor} used when iterating over the result set, (apply
-	 *          limits, skips and so on).
+	 * limits, skips and so on).
 	 * @return the {@link List} of converted objects.
 	 */
 	protected <T> Flux<T> doFind(String collectionName, Document query, Document fields, Class<T> entityClass,
-			FindPublisherPreparer preparer) {
+								 FindPublisherPreparer preparer) {
 		return doFind(collectionName, query, fields, entityClass, preparer,
 				new ReadDocumentCallback<T>(mongoConverter, entityClass, collectionName));
 	}
 
 	protected <S, T> Flux<T> doFind(String collectionName, Document query, Document fields, Class<S> entityClass,
-			FindPublisherPreparer preparer, DocumentCallback<T> objectCallback) {
+									FindPublisherPreparer preparer, DocumentCallback<T> objectCallback) {
 
 		MongoPersistentEntity<?> entity = mappingContext.getPersistentEntity(entityClass);
 
@@ -1592,7 +1654,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @return the List of converted objects.
 	 */
 	protected <T> Mono<T> doFindAndRemove(String collectionName, Document query, Document fields, Document sort,
-			Class<T> entityClass) {
+										  Class<T> entityClass) {
 
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug(String.format("findAndRemove using query: %s fields: %s sort: %s for class: %s in collection: %s",
@@ -1606,7 +1668,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	}
 
 	protected <T> Mono<T> doFindAndModify(String collectionName, Document query, Document fields, Document sort,
-			Class<T> entityClass, Update update, FindAndModifyOptions options) {
+										  Class<T> entityClass, Update update, FindAndModifyOptions options) {
 
 		FindAndModifyOptions optionsToUse;
 		if (options == null) {
@@ -1625,10 +1687,13 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 			Document mappedUpdate = updateMapper.getMappedObject(update.getUpdateObject(), entity);
 
 			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug(String.format(
-						"findAndModify using query: %s fields: %s sort: %s for class: %s and update: %s " + "in collection: %s",
-						serializeToJsonSafely(mappedQuery), fields, sort, entityClass, serializeToJsonSafely(mappedUpdate),
-						collectionName));
+				LOGGER
+						.debug(
+								String.format(
+										"findAndModify using query: %s fields: %s sort: %s for class: %s and update: %s "
+												+ "in collection: %s",
+										serializeToJsonSafely(mappedQuery), fields, sort, entityClass, serializeToJsonSafely(mappedUpdate),
+										collectionName));
 			}
 
 			return executeFindOneInternal(new FindAndModifyCallback(mappedQuery, fields, sort, mappedUpdate, optionsToUse),
@@ -1763,7 +1828,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @return
 	 */
 	private <T> Mono<T> executeFindOneInternal(ReactiveCollectionCallback<Document> collectionCallback,
-			DocumentCallback<T> objectCallback, String collectionName) {
+											   DocumentCallback<T> objectCallback, String collectionName) {
 
 		return createMono(collectionName,
 				collection -> Mono.from(collectionCallback.doInCollection(collection)).map(objectCallback::doWith));
@@ -1781,14 +1846,14 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 *
 	 * @param collectionCallback the callback to retrieve the {@link FindPublisher} with, must not be {@literal null}.
 	 * @param preparer the {@link FindPublisherPreparer} to potentially modify the {@link FindPublisher} before iterating
-	 *          over it, may be {@literal null}
+	 * over it, may be {@literal null}
 	 * @param objectCallback the {@link DocumentCallback} to transform {@link Document}s into the actual domain type, must
-	 *          not be {@literal null}.
+	 * not be {@literal null}.
 	 * @param collectionName the collection to be queried, must not be {@literal null}.
 	 * @return
 	 */
 	private <T> Flux<T> executeFindMultiInternal(ReactiveCollectionQueryCallback<Document> collectionCallback,
-			FindPublisherPreparer preparer, DocumentCallback<T> objectCallback, String collectionName) {
+												 FindPublisherPreparer preparer, DocumentCallback<T> objectCallback, String collectionName) {
 
 		return createFlux(collectionName, collection -> {
 
@@ -1856,7 +1921,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	 * @return
 	 */
 	private static RuntimeException potentiallyConvertRuntimeException(RuntimeException ex,
-			PersistenceExceptionTranslator exceptionTranslator) {
+																	   PersistenceExceptionTranslator exceptionTranslator) {
 		RuntimeException resolved = exceptionTranslator.translateExceptionIfPossible(ex);
 		return resolved == null ? ex : resolved;
 	}
@@ -2072,7 +2137,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		private final FindAndModifyOptions options;
 
 		FindAndModifyCallback(Document query, Document fields, Document sort, Document update,
-				FindAndModifyOptions options) {
+							  FindAndModifyOptions options) {
 
 			this.query = query;
 			this.fields = fields;
@@ -2095,7 +2160,7 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		}
 
 		private FindOneAndUpdateOptions convertToFindOneAndUpdateOptions(FindAndModifyOptions options, Document fields,
-				Document sort) {
+																		 Document sort) {
 
 			FindOneAndUpdateOptions result = new FindOneAndUpdateOptions();
 
@@ -2186,6 +2251,41 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 	}
 
 	/**
+	 * {@link DocumentCallback} that assumes a {@link GeoResult} to be created, delegates actual content unmarshalling to
+	 * a delegate and creates a {@link GeoResult} from the result.
+	 *
+	 * @author Mark Paluch
+	 */
+	static class GeoNearResultDbObjectCallback<T> implements DocumentCallback<GeoResult<T>> {
+
+		private final DocumentCallback<T> delegate;
+		private final Metric metric;
+
+		/**
+		 * Creates a new {@link GeoNearResultDbObjectCallback} using the given {@link DbObjectCallback} delegate for
+		 * {@link GeoResult} content unmarshalling.
+		 *
+		 * @param delegate must not be {@literal null}.
+		 */
+		GeoNearResultDbObjectCallback(DocumentCallback<T> delegate, Metric metric) {
+
+			Assert.notNull(delegate);
+			this.delegate = delegate;
+			this.metric = metric;
+		}
+
+		public GeoResult<T> doWith(Document object) {
+
+			double distance = (Double) object.get("dis");
+			Document content = (Document) object.get("obj");
+
+			T doWith = delegate.doWith(content);
+
+			return new GeoResult<T>(doWith, new Distance(distance, metric));
+		}
+	}
+
+	/**
 	 * @author Mark Paluch
 	 */
 	class QueryFindPublisherPreparer implements FindPublisherPreparer {
@@ -2271,13 +2371,13 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 
 		@Override
 		public Object resolveDbRef(MongoPersistentProperty property, DBRef dbref, DbRefResolverCallback callback,
-				DbRefProxyHandler proxyHandler) {
+								   DbRefProxyHandler proxyHandler) {
 			return null;
 		}
 
 		@Override
 		public DBRef createDbRef(org.springframework.data.mongodb.core.mapping.DBRef annotation,
-				MongoPersistentEntity<?> entity, Object id) {
+								 MongoPersistentEntity<?> entity, Object id) {
 			return null;
 		}
 
@@ -2338,7 +2438,8 @@ public class ReactiveMongoTemplate implements ReactiveMongoOperations, Applicati
 		}
 
 		@Override
-		public void resetIndexCache() {}
+		public void resetIndexCache() {
+		}
 
 		@Override
 		public List<IndexInfo> getIndexInfo() {

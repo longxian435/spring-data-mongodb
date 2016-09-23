@@ -43,7 +43,7 @@ import org.junit.Test;
 import org.springframework.core.Constants;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.data.annotation.PersistenceConstructor;
-import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.convert.DbRefProxyHandler;
@@ -98,7 +98,7 @@ public class ReactivePerformanceTests {
 
 		this.mongo = MongoClients.create();
 
-		SimpleReactiveMongoDbFactory mongoDbFactory = new SimpleReactiveMongoDbFactory(this.mongo, DATABASE_NAME);
+		SimpleReactiveMongoDatabaseFactory mongoDbFactory = new SimpleReactiveMongoDatabaseFactory(this.mongo, DATABASE_NAME);
 
 		MongoMappingContext context = new MongoMappingContext();
 		context.setInitialEntitySet(Collections.singleton(Person.class));

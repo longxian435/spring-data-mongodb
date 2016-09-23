@@ -19,7 +19,7 @@ package org.springframework.data.mongodb.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.SimpleReactiveMongoDbFactory;
+import org.springframework.data.mongodb.core.SimpleReactiveMongoDatabaseFactory;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
@@ -41,15 +41,13 @@ public abstract class AbstractReactiveMongoConfiguration extends MongoConfigurat
 	 * {@link MongoClient} instance to the {@link org.springframework.context.ApplicationContext}.
 	 * 
 	 * @return
-	 * @throws Exception
 	 */
-	public abstract MongoClient mongoClient() throws Exception;
+	public abstract MongoClient mongoClient();
 
 	/**
 	 * Creates a {@link ReactiveMongoTemplate}.
 	 * 
 	 * @return
-	 * @throws Exception
 	 */
 	@Bean
 	public ReactiveMongoTemplate reactiveMongoTemplate() throws Exception {
@@ -66,8 +64,8 @@ public abstract class AbstractReactiveMongoConfiguration extends MongoConfigurat
 	 * @throws Exception
 	 */
 	@Bean
-	public SimpleReactiveMongoDbFactory mongoDbFactory() throws Exception {
-		return new SimpleReactiveMongoDbFactory(mongoClient(), getDatabaseName());
+	public SimpleReactiveMongoDatabaseFactory mongoDbFactory() {
+		return new SimpleReactiveMongoDatabaseFactory(mongoClient(), getDatabaseName());
 	}
 
 	/**

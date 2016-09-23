@@ -18,7 +18,6 @@ package org.springframework.data.mongodb.repository.query;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -48,9 +47,6 @@ import org.springframework.util.ClassUtils;
 
 import com.mongodb.client.result.DeleteResult;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
 /**
  * Set of classes to contain query execution strategies. Depending (mostly) on the return type of a
  * {@link org.springframework.data.repository.query.QueryMethod} a {@link AbstractMongoQuery} can be executed in various
@@ -69,7 +65,7 @@ interface MongoQueryExecution {
 	 * @author Oliver Gierke
 	 */
 	@RequiredArgsConstructor
-	static final class CollectionExecution implements MongoQueryExecution {
+	final class CollectionExecution implements MongoQueryExecution {
 
 		private final @NonNull MongoOperations operations;
 		private final Pageable pageable;
@@ -92,7 +88,7 @@ interface MongoQueryExecution {
 	 * @since 1.5
 	 */
 	@RequiredArgsConstructor
-	static final class SlicedExecution implements MongoQueryExecution {
+	final class SlicedExecution implements MongoQueryExecution {
 
 		private final @NonNull MongoOperations operations;
 		private final @NonNull Pageable pageable;
@@ -124,7 +120,7 @@ interface MongoQueryExecution {
 	 * @author Mark Paluch
 	 */
 	@RequiredArgsConstructor
-	static final class PagedExecution implements MongoQueryExecution {
+	final class PagedExecution implements MongoQueryExecution {
 
 		private final @NonNull MongoOperations operations;
 		private final @NonNull Pageable pageable;
@@ -164,7 +160,7 @@ interface MongoQueryExecution {
 	 * @author Oliver Gierke
 	 */
 	@RequiredArgsConstructor
-	static final class SingleEntityExecution implements MongoQueryExecution {
+	final class SingleEntityExecution implements MongoQueryExecution {
 
 		private final MongoOperations operations;
 		private final boolean countProjection;
@@ -185,7 +181,7 @@ interface MongoQueryExecution {
 	 * @author Oliver Gierke
 	 */
 	@RequiredArgsConstructor
-	static class GeoNearExecution implements MongoQueryExecution {
+	class GeoNearExecution implements MongoQueryExecution {
 
 		private final MongoOperations operations;
 		private final MongoParameterAccessor accessor;
@@ -251,7 +247,7 @@ interface MongoQueryExecution {
 	 * @author Oliver Gierke
 	 * @author Mark Paluch
 	 */
-	static final class PagingGeoNearExecution extends GeoNearExecution {
+	final class PagingGeoNearExecution extends GeoNearExecution {
 
 		private final MongoOperations operations;
 		private final MongoParameterAccessor accessor;
@@ -302,7 +298,7 @@ interface MongoQueryExecution {
 	 * @since 1.5
 	 */
 	@RequiredArgsConstructor
-	static final class DeleteExecution implements MongoQueryExecution {
+	final class DeleteExecution implements MongoQueryExecution {
 
 		private final MongoOperations operations;
 		private final MongoQueryMethod method;
@@ -328,7 +324,7 @@ interface MongoQueryExecution {
 	 * @since 1.7
 	 */
 	@RequiredArgsConstructor
-	static final class StreamExecution implements MongoQueryExecution {
+	final class StreamExecution implements MongoQueryExecution {
 
 		private final @NonNull MongoOperations operations;
 		private final @NonNull Converter<Object, Object> resultProcessing;
@@ -359,7 +355,7 @@ interface MongoQueryExecution {
 	 * @since 1.9
 	 */
 	@RequiredArgsConstructor
-	static final class ResultProcessingExecution implements MongoQueryExecution {
+	final class ResultProcessingExecution implements MongoQueryExecution {
 
 		private final @NonNull MongoQueryExecution delegate;
 		private final @NonNull Converter<Object, Object> converter;
@@ -381,7 +377,7 @@ interface MongoQueryExecution {
 	 * @since 1.9
 	 */
 	@RequiredArgsConstructor
-	static final class ResultProcessingConverter implements Converter<Object, Object> {
+	final class ResultProcessingConverter implements Converter<Object, Object> {
 
 		private final @NonNull ResultProcessor processor;
 		private final @NonNull MongoOperations operations;

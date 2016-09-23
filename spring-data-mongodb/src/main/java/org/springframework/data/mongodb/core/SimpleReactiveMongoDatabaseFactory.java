@@ -35,7 +35,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
  * @author Mark Paluch
  * @since 2.0
  */
-public class SimpleReactiveMongoDbFactory implements DisposableBean, ReactiveMongoDatabaseFactory {
+public class SimpleReactiveMongoDatabaseFactory implements DisposableBean, ReactiveMongoDatabaseFactory {
 
 	private final MongoClient mongo;
 	private final String databaseName;
@@ -45,27 +45,27 @@ public class SimpleReactiveMongoDbFactory implements DisposableBean, ReactiveMon
 	private WriteConcern writeConcern;
 
 	/**
-	 * Creates a new {@link SimpleReactiveMongoDbFactory} instance from the given {@link ConnectionString}.
+	 * Creates a new {@link SimpleReactiveMongoDatabaseFactory} instance from the given {@link ConnectionString}.
 	 *
 	 * @param connectionString must not be {@literal null}.
 	 * @throws UnknownHostException
 	 */
-	public SimpleReactiveMongoDbFactory(ConnectionString connectionString) throws UnknownHostException {
+	public SimpleReactiveMongoDatabaseFactory(ConnectionString connectionString) throws UnknownHostException {
 		this(MongoClients.create(connectionString), connectionString.getDatabase(), true);
 	}
 
 	/**
-	 * Creates a new {@link SimpleReactiveMongoDbFactory} instance from the given {@link MongoClient}.
+	 * Creates a new {@link SimpleReactiveMongoDatabaseFactory} instance from the given {@link MongoClient}.
 	 *
 	 * @param mongoClient must not be {@literal null}.
 	 * @param databaseName must not be {@literal null}.
 	 * @since 1.7
 	 */
-	public SimpleReactiveMongoDbFactory(MongoClient mongoClient, String databaseName) {
+	public SimpleReactiveMongoDatabaseFactory(MongoClient mongoClient, String databaseName) {
 		this(mongoClient, databaseName, false);
 	}
 
-	private SimpleReactiveMongoDbFactory(MongoClient client, String databaseName, boolean mongoInstanceCreated) {
+	private SimpleReactiveMongoDatabaseFactory(MongoClient client, String databaseName, boolean mongoInstanceCreated) {
 
 		Assert.notNull(client, "MongoClient must not be null!");
 		Assert.hasText(databaseName, "Database name must not be empty!");

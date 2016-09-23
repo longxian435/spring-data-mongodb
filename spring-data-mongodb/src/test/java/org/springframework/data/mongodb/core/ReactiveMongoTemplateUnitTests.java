@@ -41,7 +41,7 @@ public class ReactiveMongoTemplateUnitTests {
 
 	ReactiveMongoTemplate template;
 
-	@Mock SimpleReactiveMongoDbFactory factory;
+	@Mock SimpleReactiveMongoDatabaseFactory factory;
 	@Mock MongoClient mongoClient;
 
 	MongoExceptionTranslator exceptionTranslator = new MongoExceptionTranslator();

@@ -20,10 +20,13 @@ import java.util.Collection;
 import org.bson.Document;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.GeoResults;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
@@ -36,11 +39,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Interface that specifies a basic set of MongoDB operations executed in a reactive way. Implemented by
- * {@link ReactiveMongoTemplate}. Not often used but a useful option for extensibility and testability (as it can be
- * easily mocked, stubbed, or be the target of a JDK proxy). Command execution using {@link ReactiveMongoOperations} is
- * deffered until subscriber subscribes to the {@link Publisher}. TODO: PersistenceException log/ignore/exception,
- * return inserted objects of insert methods, geo, aggregation
+ * Interface that specifies a basic set of MongoDB operations executed in a reactive way.
+ * <p>
+ * Implemented by {@link ReactiveMongoTemplate}. Not often used but a useful option for extensibility and testability
+ * (as it can be easily mocked, stubbed, or be the target of a JDK proxy). Command execution using
+ * {@link ReactiveMongoOperations} is deferred until subscriber subscribes to the {@link Publisher}.
  *
  * @author Mark Paluch
  * @see Flux
@@ -379,6 +382,31 @@ public interface ReactiveMongoOperations {
 	<T> Mono<T> findById(Object id, Class<T> entityClass, String collectionName);
 
 	/**
+	 * Returns {@link Flux} of {@link GeoResult} for all entities matching the given {@link NearQuery}. Will consider entity mapping
+	 * information to determine the collection the query is ran against. Note, that MongoDB limits the number of results
+	 * by default. Make sure to add an explicit limit to the {@link NearQuery} if you expect a particular number of
+	 * results.
+	 *
+	 * @param near must not be {@literal null}.
+	 * @param entityClass must not be {@literal null}.
+	 * @return
+	 */
+	<T> Flux<GeoResult<T>> geoNear(NearQuery near, Class<T> entityClass);
+
+	/**
+	 * Returns {@link Flux} of {@link GeoResult} for all entities matching the given {@link NearQuery}. Note, that MongoDB limits the
+	 * number of results by default. Make sure to add an explicit limit to the {@link NearQuery} if you expect a
+	 * particular number of results.
+	 *
+	 * @param near must not be {@literal null}.
+	 * @param entityClass must not be {@literal null}.
+	 * @param collectionName the collection to trigger the query against. If no collection name is given the entity class
+	 *          will be inspected.
+	 * @return
+	 */
+	<T> Flux<GeoResult<T>> geoNear(NearQuery near, Class<T> entityClass, String collectionName);
+
+	/**
 	 * Triggers <a href="http://docs.mongodb.org/manual/reference/method/db.collection.findAndModify/">findAndModify <a/>
 	 * to apply provided {@link Update} on documents matching {@link Criteria} of given {@link Query}.
 	 *
@@ -577,7 +605,6 @@ public interface ReactiveMongoOperations {
 	 * @param objectToSave the object to store in the collection.
 	 * @return
 	 */
-	// TODO: Naming? insertOne/insertMany in MongoCollection
 	<T> Mono<T> insert(Mono<? extends T> objectToSave);
 
 	/**
@@ -587,7 +614,7 @@ public interface ReactiveMongoOperations {
 	 * @param entityClass class that determines the collection to use
 	 * @return
 	 */
-	Mono<Void> insert(Publisher<? extends Object> batchToSave, Class<?> entityClass);
+	<T> Flux<T> insert(Publisher<? extends T> batchToSave, Class<?> entityClass);
 
 	/**
 	 * Insert a list of objects into the specified collection in a single batch write to the database.
@@ -596,7 +623,7 @@ public interface ReactiveMongoOperations {
 	 * @param collectionName name of the collection to store the object in
 	 * @return
 	 */
-	Mono<Void> insert(Publisher<? extends Object> batchToSave, String collectionName);
+	<T> Flux<T> insert(Publisher<? extends T> batchToSave, String collectionName);
 
 	/**
 	 * Insert a mixed Collection of objects into a database collection determining the collection name to use based on the

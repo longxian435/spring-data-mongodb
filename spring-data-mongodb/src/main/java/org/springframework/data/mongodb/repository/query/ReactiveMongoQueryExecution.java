@@ -18,13 +18,20 @@ package org.springframework.data.mongodb.repository.query;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.EntityInstantiators;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Range;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
+import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.support.ReactivePageImpl;
 import org.springframework.data.mongodb.repository.support.ReactiveSliceImpl;
+import org.springframework.data.repository.query.ReactiveWrappers;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.ReturnedType;
+import org.springframework.data.util.TypeInformation;
 import org.springframework.util.ClassUtils;
 
 import lombok.NonNull;
@@ -33,8 +40,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * TODO: GeoNear
- * 
+ * Set of classes to contain query execution strategies. Depending (mostly) on the return type of a
+ * {@link org.springframework.data.repository.query.QueryMethod} a {@link AbstractReactiveMongoQuery} can be executed in various
+ * flavors.
+ *
  * @author Mark Paluch
  * @since 2.0
  */
@@ -145,6 +154,72 @@ interface ReactiveMongoQueryExecution {
 		@Override
 		public Object execute(Query query, Class<?> type, String collection) {
 			return countProjection ? operations.count(query, type, collection) : operations.findOne(query, type, collection);
+		}
+	}
+
+	/**
+	 * {@link MongoQueryExecution} to execute geo-near queries.
+	 *
+	 * @author Mark Paluch
+	 */
+	@RequiredArgsConstructor
+	class GeoNearExecution implements ReactiveMongoQueryExecution {
+
+		private final ReactiveMongoOperations operations;
+		private final MongoParameterAccessor accessor;
+		private final TypeInformation<?> returnType;
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.data.mongodb.repository.query.AbstractMongoQuery.Execution#execute(org.springframework.data.mongodb.core.query.Query, java.lang.Class, java.lang.String)
+		 */
+		@Override
+		public Object execute(Query query, Class<?> type, String collection) {
+
+			Flux<GeoResult<?>> results = doExecuteQuery(query, type, collection);
+			return isStreamOfGeoResult() ? results : results.map(GeoResult::getContent);
+		}
+
+		@SuppressWarnings("unchecked")
+		protected Flux<GeoResult<?>> doExecuteQuery(Query query, Class<?> type, String collection) {
+
+			Point nearLocation = accessor.getGeoNearLocation();
+			NearQuery nearQuery = NearQuery.near(nearLocation);
+
+			if (query != null) {
+				nearQuery.query(query);
+			}
+
+			Range<Distance> distances = accessor.getDistanceRange();
+			Distance maxDistance = distances.getUpperBound();
+
+			if (maxDistance != null) {
+				nearQuery.maxDistance(maxDistance).in(maxDistance.getMetric());
+			}
+
+			Distance minDistance = distances.getLowerBound();
+
+			if (minDistance != null) {
+				nearQuery.minDistance(minDistance).in(minDistance.getMetric());
+			}
+
+			Pageable pageable = accessor.getPageable();
+
+			if (pageable != null) {
+				nearQuery.with(pageable);
+			}
+
+			return (Flux) operations.geoNear(nearQuery, type, collection);
+		}
+
+		private boolean isStreamOfGeoResult() {
+
+			if (!ReactiveWrappers.supports(returnType.getType())) {
+				return false;
+			}
+
+			TypeInformation<?> componentType = returnType.getComponentType();
+			return componentType != null && GeoResult.class.equals(componentType.getType());
 		}
 	}
 
