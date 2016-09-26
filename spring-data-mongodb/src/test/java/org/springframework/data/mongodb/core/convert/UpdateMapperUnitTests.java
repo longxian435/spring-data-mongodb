@@ -107,7 +107,7 @@ public class UpdateMapperUnitTests {
 		Document push = getAsDocument(mappedObject, "$push");
 		Document list = getAsDocument(push, "aliased");
 
-		assertThat(list.get("_class"), is((Object) ConcreteChildClass.class.getName()));
+		assertThat(list.get("_class"), is(ConcreteChildClass.class.getName()));
 	}
 
 	/**
@@ -173,7 +173,7 @@ public class UpdateMapperUnitTests {
 
 		Document set = getAsDocument(mappedObject, "$set");
 		Document modelDbObject = getAsDocument(set, "aliased.$");
-		assertThat(modelDbObject.get("_class"), is((Object) ConcreteChildClass.class.getName()));
+		assertThat(modelDbObject.get("_class"), is(ConcreteChildClass.class.getName()));
 	}
 
 	/**
@@ -189,8 +189,8 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(ParentClass.class));
 
 		Document set = getAsDocument(mappedObject, "$set");
-		assertThat(set.get("aliased.$.value"), is((Object) "foo"));
-		assertThat(set.get("aliased.$.otherValue"), is((Object) "bar"));
+		assertThat(set.get("aliased.$.value"), is("foo"));
+		assertThat(set.get("aliased.$.otherValue"), is("bar"));
 	}
 
 	/**
@@ -206,12 +206,12 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(ParentClass.class));
 
 		Document dbo = getAsDocument(mappedObject, "$set");
-		assertThat(dbo.get("aliased.$.value"), is((Object) "foo"));
+		assertThat(dbo.get("aliased.$.value"), is("foo"));
 
 		Document someObject = getAsDocument(dbo, "aliased.$.someObject");
 		assertThat(someObject, is(notNullValue()));
-		assertThat(someObject.get("_class"), is((Object) ConcreteChildClass.class.getName()));
-		assertThat(someObject.get("value"), is((Object) "bubu"));
+		assertThat(someObject.get("_class"), is(ConcreteChildClass.class.getName()));
+		assertThat(someObject.get("value"), is("bubu"));
 	}
 
 	/**
@@ -231,7 +231,7 @@ public class UpdateMapperUnitTests {
 		assertThat(push.get("_class"), nullValue());
 		assertThat(values.get("_class"), nullValue());
 
-		assertThat(each, IsIterableContainingInOrder.<Object> contains("spring", "data", "mongodb"));
+		assertThat(each, IsIterableContainingInOrder.contains("spring", "data", "mongodb"));
 	}
 
 	/**
@@ -266,7 +266,7 @@ public class UpdateMapperUnitTests {
 		List<Object> each = getAsDBList(model, "$each");
 		List<Object> values = getAsDBList((Document) each.get(0), "values");
 
-		assertThat(values, IsIterableContainingInOrder.<Object> contains("spring", "data", "mongodb"));
+		assertThat(values, IsIterableContainingInOrder.contains("spring", "data", "mongodb"));
 	}
 
 	/**
@@ -314,7 +314,7 @@ public class UpdateMapperUnitTests {
 		Document key = getAsDocument(push, "key");
 
 		assertThat(key.containsKey("$position"), is(true));
-		assertThat((Integer) key.get("$position"), is(2));
+		assertThat(key.get("$position"), is(2));
 		assertThat(getAsDocument(push, "key").containsKey("$each"), is(true));
 	}
 
@@ -332,7 +332,7 @@ public class UpdateMapperUnitTests {
 		Document key = getAsDocument(push, "key");
 
 		assertThat(key.containsKey("$position"), is(true));
-		assertThat((Integer) key.get("$position"), is(0));
+		assertThat(key.get("$position"), is(0));
 		assertThat(getAsDocument(push, "key").containsKey("$each"), is(true));
 	}
 
@@ -384,7 +384,7 @@ public class UpdateMapperUnitTests {
 		Document key = getAsDocument(push, "key");
 
 		assertThat(key.containsKey("$slice"), is(true));
-		assertThat((Integer) key.get("$slice"), is(5));
+		assertThat(key.get("$slice"), is(5));
 		assertThat(key.containsKey("$each"), is(true));
 	}
 
@@ -403,13 +403,13 @@ public class UpdateMapperUnitTests {
 		Document key = getAsDocument(push, "key");
 
 		assertThat(key.containsKey("$slice"), is(true));
-		assertThat((Integer) key.get("$slice"), is(5));
+		assertThat(key.get("$slice"), is(5));
 		assertThat(key.containsKey("$each"), is(true));
 
 		Document key2 = getAsDocument(push, "key-2");
 
 		assertThat(key2.containsKey("$slice"), is(true));
-		assertThat((Integer) key2.get("$slice"), is(-2));
+		assertThat(key2.get("$slice"), is(-2));
 		assertThat(key2.containsKey("$each"), is(true));
 	}
 
@@ -441,7 +441,7 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(DocumentWithDBRefCollection.class));
 
 		Document pullClause = getAsDocument(mappedObject, "$pull");
-		assertThat(pullClause.get("dbRefAnnotatedList"), is((Object) new DBRef("entity", "2")));
+		assertThat(pullClause.get("dbRefAnnotatedList"), is(new DBRef("entity", "2")));
 	}
 
 	/**
@@ -458,7 +458,7 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(DocumentWithDBRefCollection.class));
 
 		Document pullClause = getAsDocument(mappedObject, "$pull");
-		assertThat(pullClause.get("dbRefAnnotatedList"), is((Object) new DBRef("entity", entity.id)));
+		assertThat(pullClause.get("dbRefAnnotatedList"), is(new DBRef("entity", entity.id)));
 	}
 
 	/**
@@ -499,7 +499,7 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(DocumentWithDBRefCollection.class));
 
 		Document setClause = getAsDocument(mappedObject, "$set");
-		assertThat(setClause.get("dbRefProperty"), is((Object) new DBRef("entity", entity.id)));
+		assertThat(setClause.get("dbRefProperty"), is(new DBRef("entity", entity.id)));
 	}
 
 	/**
@@ -534,7 +534,7 @@ public class UpdateMapperUnitTests {
 		Document idClause = getAsDocument(options, "_id");
 		List<Object> inClause = getAsDBList(idClause, "$in");
 
-		assertThat(inClause, IsIterableContainingInOrder.<Object> contains(1L, 2L));
+		assertThat(inClause, IsIterableContainingInOrder.contains(1L, 2L));
 	}
 
 	/**
@@ -552,7 +552,7 @@ public class UpdateMapperUnitTests {
 		Document values = getAsDocument(addToSet, "values");
 		List<Object> each = getAsDBList(values, "$each");
 
-		assertThat(each, IsIterableContainingInOrder.<Object> contains("spring", "data", "mongodb"));
+		assertThat(each, IsIterableContainingInOrder.contains("spring", "data", "mongodb"));
 	}
 
 	/**
@@ -590,7 +590,7 @@ public class UpdateMapperUnitTests {
 		Object model = $set.get("referencedDocument");
 
 		DBRef expectedDBRef = new DBRef("interfaceDocumentDefinitionImpl", "1");
-		assertThat(model, allOf(instanceOf(DBRef.class), IsEqual.<Object> equalTo(expectedDBRef)));
+		assertThat(model, allOf(instanceOf(DBRef.class), IsEqual.equalTo(expectedDBRef)));
 	}
 
 	/**
@@ -608,7 +608,7 @@ public class UpdateMapperUnitTests {
 		Document value = DBObjectTestUtils.getAsDocument(list, "value");
 		List<Object> $in = DBObjectTestUtils.getAsDBList(value, "$in");
 
-		assertThat($in, IsIterableContainingInOrder.<Object> contains("foo", "bar"));
+		assertThat($in, IsIterableContainingInOrder.contains("foo", "bar"));
 	}
 
 	/**
@@ -721,7 +721,7 @@ public class UpdateMapperUnitTests {
 	public void mappingShouldRetainTypeInformationOfNestedListWhenUpdatingConcreteyParentType() {
 
 		ListModelWrapper lmw = new ListModelWrapper();
-		lmw.models = Collections.<Model> singletonList(new ModelImpl(1));
+		lmw.models = Collections.singletonList(new ModelImpl(1));
 
 		Update update = new Update().set("concreteTypeWithListAttributeOfInterfaceType", lmw);
 		Document mappedUpdate = mapper.getMappedObject(update.getUpdateObject(),
@@ -780,7 +780,7 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void mappingShouldRetrainTypeInformationWhenValueTypeOfMapDoesNotMatchItsDeclaration() {
 
-		Map<Object, Object> map = Collections.<Object, Object> singletonMap("szeth", new NestedDocument("son-son-vallano"));
+		Map<Object, Object> map = Collections.singletonMap("szeth", new NestedDocument("son-son-vallano"));
 
 		Update update = new Update().set("map", map);
 		Document mappedUpdate = mapper.getMappedObject(update.getUpdateObject(),
@@ -796,7 +796,7 @@ public class UpdateMapperUnitTests {
 	@Test
 	public void mappingShouldNotContainTypeInformationWhenValueTypeOfMapMatchesDeclaration() {
 
-		Map<Object, NestedDocument> map = Collections.<Object, NestedDocument> singletonMap("jasnah",
+		Map<Object, NestedDocument> map = Collections.singletonMap("jasnah",
 				new NestedDocument("kholin"));
 
 		Update update = new Update().set("concreteMap", map);
@@ -909,7 +909,7 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(SimpleValueHolder.class));
 
 		Document $set = DBObjectTestUtils.getAsDocument(mappedUpdate, "$set");
-		assertThat($set.get("intValue"), Is.<Object> is(10));
+		assertThat($set.get("intValue"), Is.is(10));
 	}
 
 	/**
@@ -923,7 +923,7 @@ public class UpdateMapperUnitTests {
 				context.getPersistentEntity(SimpleValueHolder.class));
 
 		Document $set = DBObjectTestUtils.getAsDocument(mappedUpdate, "$set");
-		assertThat($set.get("primIntValue"), Is.<Object> is(10));
+		assertThat($set.get("primIntValue"), Is.is(10));
 	}
 
 	/**
@@ -983,6 +983,51 @@ public class UpdateMapperUnitTests {
 		assertThat(enumAsMapKey.get("AVAILABLE"), is(100));
 	}
 
+	/**
+	 * @see DATAMONGO-1176
+	 */
+	@Test
+	public void mappingShouldPrepareUpdateObjectForMixedOperatorsAndFields() {
+
+		Document document = new Document("key", "value").append("$set", new Document("a", "b").append("x", "y"));
+
+		Document mappedObject = mapper.getMappedObject(document, context.getPersistentEntity(SimpleValueHolder.class));
+
+		assertThat(mappedObject.get("$set"), is(equalTo(new Document("a", "b").append("x", "y").append("key", "value"))));
+		assertThat(mappedObject.size(), is(1));
+	}
+
+	/**
+	 * @see DATAMONGO-1176
+	 */
+	@Test
+	public void mappingShouldReturnReplaceObject() {
+
+		Document document = new Document("key", "value").append("a", "b").append("x", "y");
+
+		Document mappedObject = mapper.getMappedObject(document, context.getPersistentEntity(SimpleValueHolder.class));
+
+		assertThat(mappedObject.get("key"), is(equalTo("value")));
+		assertThat(mappedObject.get("a"), is(equalTo("b")));
+		assertThat(mappedObject.get("x"), is(equalTo("y")));
+		assertThat(mappedObject.size(), is(3));
+	}
+
+	/**
+	 * @see DATAMONGO-1176
+	 */
+	@Test
+	public void mappingShouldReturnUpdateObject() {
+
+		Document document = new Document("$push", new Document("x", "y")).append("$set", new Document("a", "b"));
+
+		Document mappedObject = mapper.getMappedObject(document, context.getPersistentEntity(SimpleValueHolder.class));
+
+		assertThat(mappedObject.get("$push"), is(equalTo(new Document("x", "y"))));
+		assertThat(mappedObject.get("$set"), is(equalTo(new Document("a", "b"))));
+		assertThat(mappedObject.size(), is(2));
+	}
+
 	static class DomainTypeWrappingConcreteyTypeHavingListOfInterfaceTypeAttributes {
 		ListModelWrapper concreteTypeWithListAttributeOfInterfaceType;
 	}
@@ -996,7 +1041,7 @@ public class UpdateMapperUnitTests {
 	}
 
 	@org.springframework.data.mongodb.core.mapping.Document(collection = "DocumentWithReferenceToInterface")
-	static interface DocumentWithReferenceToInterface {
+	interface DocumentWithReferenceToInterface {
 
 		String getId();
 
@@ -1004,7 +1049,7 @@ public class UpdateMapperUnitTests {
 
 	}
 
-	static interface InterfaceDocumentDefinitionWithoutId {
+	interface InterfaceDocumentDefinitionWithoutId {
 
 		String getValue();
 	}
@@ -1053,7 +1098,7 @@ public class UpdateMapperUnitTests {
 
 	}
 
-	static interface Model {}
+	interface Model {}
 
 	static class ModelImpl implements Model {
 		public int value;
@@ -1211,13 +1256,13 @@ public class UpdateMapperUnitTests {
 		Allocation allocation;
 		Map<Allocation, String> enumAsMapKey;
 
-		static enum Allocation {
+		enum Allocation {
 
 			AVAILABLE("V"), ALLOCATED("A");
 
 			String code;
 
-			private Allocation(String code) {
+			Allocation(String code) {
 				this.code = code;
 			}
 
@@ -1233,7 +1278,7 @@ public class UpdateMapperUnitTests {
 			}
 		}
 
-		static enum AllocationToStringConverter implements Converter<Allocation, String> {
+		enum AllocationToStringConverter implements Converter<Allocation, String> {
 
 			INSTANCE;
 
@@ -1243,7 +1288,7 @@ public class UpdateMapperUnitTests {
 			}
 		}
 
-		static enum StringToAllocationConverter implements Converter<String, Allocation> {
+		enum StringToAllocationConverter implements Converter<String, Allocation> {
 
 			INSTANCE;
 
