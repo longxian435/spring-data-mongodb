@@ -176,12 +176,12 @@ interface ReactiveMongoQueryExecution {
 		@Override
 		public Object execute(Query query, Class<?> type, String collection) {
 
-			Flux<GeoResult<?>> results = doExecuteQuery(query, type, collection);
+			Flux<GeoResult<Object>> results = doExecuteQuery(query, type, collection);
 			return isStreamOfGeoResult() ? results : results.map(GeoResult::getContent);
 		}
 
 		@SuppressWarnings("unchecked")
-		protected Flux<GeoResult<?>> doExecuteQuery(Query query, Class<?> type, String collection) {
+		protected Flux<GeoResult<Object>> doExecuteQuery(Query query, Class<?> type, String collection) {
 
 			Point nearLocation = accessor.getGeoNearLocation();
 			NearQuery nearQuery = NearQuery.near(nearLocation);

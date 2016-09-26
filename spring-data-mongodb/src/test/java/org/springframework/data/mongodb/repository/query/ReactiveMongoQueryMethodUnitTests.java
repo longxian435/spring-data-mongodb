@@ -244,8 +244,5 @@ public class ReactiveMongoQueryMethodUnitTests {
 		Customer methodReturningAnInterface();
 	}
 
-	interface Customer {
-
-	}
-
+	interface Customer {}
 }

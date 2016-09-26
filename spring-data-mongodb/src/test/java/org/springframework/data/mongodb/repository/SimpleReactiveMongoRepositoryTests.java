@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.BeansException;
@@ -80,7 +79,7 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 	}
 
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() {
 
 		factory = new ReactiveMongoRepositoryFactory(template);
 		factory.setRepositoryBaseClass(SimpleReactiveMongoRepository.class);
@@ -106,103 +105,142 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		subscriber.await().assertComplete().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void existsByIdShouldReturnTrueForExistingObject() throws Exception {
+	public void existsByIdShouldReturnTrueForExistingObject() {
 
 		Boolean exists = repository.exists(dave.id).block();
 
 		assertThat(exists, is(true));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void existsByIdShouldReturnFalseForAbsentObject() throws Exception {
+	public void existsByIdShouldReturnFalseForAbsentObject() {
 
 		TestSubscriber<Boolean> testSubscriber = TestSubscriber.subscribe(repository.exists("unknown"));
 
 		testSubscriber.await().assertComplete().assertValues(false).assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void existsByMonoOfIdShouldReturnTrueForExistingObject() throws Exception {
+	public void existsByMonoOfIdShouldReturnTrueForExistingObject() {
 
 		Boolean exists = repository.exists(Mono.just(dave.id)).block();
 		assertThat(exists, is(true));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void existsByEmptyMonoOfIdShouldReturnEmptyMono() throws Exception {
+	public void existsByEmptyMonoOfIdShouldReturnEmptyMono() {
 
 		TestSubscriber<Boolean> testSubscriber = TestSubscriber.subscribe(repository.exists(Mono.empty()));
 
 		testSubscriber.await().assertComplete().assertNoValues().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findOneShouldReturnObject() throws Exception {
+	public void findOneShouldReturnObject() {
 
 		ReactivePerson person = repository.findOne(dave.id).block();
 
 		assertThat(person.getFirstname(), is(equalTo("Dave")));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findOneShouldCompleteWithoutValueForAbsentObject() throws Exception {
+	public void findOneShouldCompleteWithoutValueForAbsentObject() {
 
 		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.findOne("unknown"));
 
 		testSubscriber.await().assertComplete().assertNoValues().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findOneByMonoOfIdShouldReturnTrueForExistingObject() throws Exception {
+	public void findOneByMonoOfIdShouldReturnTrueForExistingObject() {
 
 		ReactivePerson person = repository.findOne(Mono.just(dave.id)).block();
 
 		assertThat(person.id, is(equalTo(dave.id)));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findOneByEmptyMonoOfIdShouldReturnEmptyMono() throws Exception {
+	public void findOneByEmptyMonoOfIdShouldReturnEmptyMono() {
 
 		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.findOne(Mono.empty()));
 
 		testSubscriber.await().assertComplete().assertNoValues().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllShouldReturnAllResults() throws Exception {
+	public void findAllShouldReturnAllResults() {
 
 		List<ReactivePerson> persons = repository.findAll().collectList().block();
 
 		assertThat(persons, hasSize(7));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllByIterableOfIdShouldReturnResults() throws Exception {
+	public void findAllByIterableOfIdShouldReturnResults() {
 
 		List<ReactivePerson> persons = repository.findAll(Arrays.asList(dave.id, boyd.id)).collectList().block();
 
 		assertThat(persons, hasSize(2));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllByPublisherOfIdShouldReturnResults() throws Exception {
+	public void findAllByPublisherOfIdShouldReturnResults() {
 
 		List<ReactivePerson> persons = repository.findAll(Flux.just(dave.id, boyd.id)).collectList().block();
 
 		assertThat(persons, hasSize(2));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllByEmptyPublisherOfIdShouldReturnResults() throws Exception {
+	public void findAllByEmptyPublisherOfIdShouldReturnResults() {
 
 		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.findAll(Flux.empty()));
 
 		testSubscriber.await().assertComplete().assertNoValues().assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllWithSortShouldReturnResults() throws Exception {
+	public void findAllWithSortShouldReturnResults() {
 
 		List<ReactivePerson> persons = repository.findAll(new Sort(new Order(Direction.ASC, "age"))).collectList().block();
 
@@ -210,22 +248,27 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(persons.get(0).getId(), is(equalTo(oliver.getId())));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	@Ignore("Fix reactive page")
-	public void findAllWithPageRequestShouldReturnPage() throws Exception {
+	public void findAllWithPageRequestShouldReturnPage() {
 
-		Page<ReactivePerson> people = repository.findAll(new PageRequest(1, 10)).block();
+		Page<ReactivePerson> people = repository.findAll(new PageRequest(0, 10)).block();
 
 		assertThat(people.getTotalPages(), is(1));
 
 		List<String> ids = people.getContent().stream().map(ReactivePerson::getId).collect(Collectors.toList());
 
 		assertThat(ids, hasSize(7));
-		assertThat(ids, contains(dave.id, carter.id));
+		assertThat(ids, hasItems(dave.id, carter.id));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void findAllWithPageRequestOfPageSize1ShouldReturnPage() throws Exception {
+	public void findAllWithPageRequestOfPageSize1ShouldReturnPage() {
 
 		Page<ReactivePerson> people = repository.findAll(new PageRequest(1, 1)).block();
 
@@ -235,16 +278,22 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(ids, hasSize(1));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void countShouldReturnNumberOfRecords() throws Exception {
+	public void countShouldReturnNumberOfRecords() {
 
 		TestSubscriber<Long> testSubscriber = TestSubscriber.subscribe(repository.count());
 
 		testSubscriber.await().assertComplete().assertValueCount(1).assertValues(7L).assertNoError();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void insertEntityShouldInsertEntity() throws Exception {
+	public void insertEntityShouldInsertEntity() {
 
 		repository.deleteAll().block();
 
@@ -257,8 +306,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(person.getId(), is(notNullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void insertShouldDeferredWrite() throws Exception {
+	public void insertShouldDeferredWrite() {
 
 		ReactivePerson person = new ReactivePerson("Homer", "Simpson", 36);
 
@@ -267,8 +319,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(person.getId(), is(nullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void insertIterableOfEntitiesShouldInsertEntity() throws Exception {
+	public void insertIterableOfEntitiesShouldInsertEntity() {
 
 		repository.deleteAll().block();
 
@@ -276,7 +331,8 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		oliver.setId(null);
 		boyd.setId(null);
 
-		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.insert(Arrays.asList(dave, oliver, boyd)));
+		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber
+				.subscribe(repository.insert(Arrays.asList(dave, oliver, boyd)));
 
 		testSubscriber.await().assertComplete().assertValueCount(3).assertValues(dave, oliver, boyd);
 
@@ -285,8 +341,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(boyd.getId(), is(notNullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void insertPublisherOfEntitiesShouldInsertEntity() throws Exception {
+	public void insertPublisherOfEntitiesShouldInsertEntity() {
 
 		repository.deleteAll().block();
 
@@ -294,7 +353,8 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		oliver.setId(null);
 		boyd.setId(null);
 
-		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.insert(Flux.just(dave, oliver, boyd)));
+		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber
+				.subscribe(repository.insert(Flux.just(dave, oliver, boyd)));
 
 		testSubscriber.await().assertComplete().assertValueCount(3);
 
@@ -303,8 +363,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(boyd.getId(), is(notNullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void saveEntityShouldUpdateExistingEntity() throws Exception {
+	public void saveEntityShouldUpdateExistingEntity() {
 
 		dave.setFirstname("Hello, Dave");
 		dave.setLastname("Bowman");
@@ -324,8 +387,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(reactivePerson.getLastname(), is(equalTo(dave.getLastname())));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void saveEntityShouldInsertNewEntity() throws Exception {
+	public void saveEntityShouldInsertNewEntity() {
 
 		ReactivePerson person = new ReactivePerson("Homer", "Simpson", 36);
 
@@ -339,8 +405,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(reactivePerson.getLastname(), is(equalTo(person.getLastname())));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void saveIterableOfNewEntitiesShouldInsertEntity() throws Exception {
+	public void saveIterableOfNewEntitiesShouldInsertEntity() {
 
 		repository.deleteAll().block();
 
@@ -348,7 +417,8 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		oliver.setId(null);
 		boyd.setId(null);
 
-		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.save(Arrays.asList(dave, oliver, boyd)));
+		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber
+				.subscribe(repository.save(Arrays.asList(dave, oliver, boyd)));
 
 		testSubscriber.await().assertComplete().assertValueCount(3).assertValues(dave, oliver, boyd);
 
@@ -357,15 +427,19 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(boyd.getId(), is(notNullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void saveIterableOfMixedEntitiesShouldInsertEntity() throws Exception {
+	public void saveIterableOfMixedEntitiesShouldInsertEntity() {
 
 		ReactivePerson person = new ReactivePerson("Homer", "Simpson", 36);
 
 		dave.setFirstname("Hello, Dave");
 		dave.setLastname("Bowman");
 
-		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.save(Arrays.asList(person, dave)));
+		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber
+				.subscribe(repository.save(Arrays.asList(person, dave)));
 
 		testSubscriber.await().assertComplete().assertValueCount(2);
 
@@ -377,8 +451,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(persistentHomer, is(equalTo(person)));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void savePublisherOfEntitiesShouldInsertEntity() throws Exception {
+	public void savePublisherOfEntitiesShouldInsertEntity() {
 
 		repository.deleteAll().block();
 
@@ -386,7 +463,8 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		oliver.setId(null);
 		boyd.setId(null);
 
-		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber.subscribe(repository.save(Flux.just(dave, oliver, boyd)));
+		TestSubscriber<ReactivePerson> testSubscriber = TestSubscriber
+				.subscribe(repository.save(Flux.just(dave, oliver, boyd)));
 
 		testSubscriber.await().assertComplete().assertValueCount(3);
 
@@ -395,8 +473,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		assertThat(boyd.getId(), is(notNullValue()));
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void deleteAllShouldRemoveEntities() throws Exception {
+	public void deleteAllShouldRemoveEntities() {
 
 		repository.deleteAll().block();
 
@@ -405,8 +486,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		testSubscriber.await().assertComplete().assertValueCount(0);
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void deleteByIdShouldRemoveEntity() throws Exception {
+	public void deleteByIdShouldRemoveEntity() {
 
 		TestSubscriber<Void> testSubscriber = TestSubscriber.subscribe(repository.delete(dave.id));
 
@@ -417,8 +501,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		verificationSubscriber.await().assertComplete().assertNoValues();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void deleteShouldRemoveEntity() throws Exception {
+	public void deleteShouldRemoveEntity() {
 
 		TestSubscriber<Void> testSubscriber = TestSubscriber.subscribe(repository.delete(dave));
 
@@ -429,8 +516,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 		verificationSubscriber.await().assertComplete().assertNoValues();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void deleteIterableOfEntitiesShouldRemoveEntities() throws Exception {
+	public void deleteIterableOfEntitiesShouldRemoveEntities() {
 
 		TestSubscriber<Void> testSubscriber = TestSubscriber.subscribe(repository.delete(Arrays.asList(dave, boyd)));
 
@@ -445,8 +535,11 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
-	public void deletePublisherOfEntitiesShouldRemoveEntities() throws Exception {
+	public void deletePublisherOfEntitiesShouldRemoveEntities() {
 
 		TestSubscriber<Void> testSubscriber = TestSubscriber.subscribe(repository.delete(Flux.just(dave, boyd)));
 

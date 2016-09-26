@@ -85,9 +85,6 @@ public class ReactiveMongoTemplateExecuteTests {
 	/**
 	 * @see DATAMONGO-1444
 	 */
-	/**
-	 * @see DATAMONGO-1444
-	 */
 	@Test
 	public void executeCommandJsonCommandShouldReturnSingleResponse() throws Exception {
 

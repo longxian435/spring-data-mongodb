@@ -52,7 +52,13 @@ We have a quite simple domain object here. Note that it has a property named `id
 ----
 public interface ReactivePersonRepository extends ReactivePagingAndSortingRepository<Person, Long> {
 
-  // additional custom finder methods go here
+  Flux<Person> findByFirstname(String firstname);
+
+  Flux<Person> findByFirstname(Publisher<String> firstname);
+
+  Flux<Person> findByFirstnameOrderByLastname(String firstname, Pageable pageable);
+
+  Mono<Person> findByFirstnameAndLastname(String firstname, String lastname);
 }
 ----
 ====
@@ -202,14 +208,14 @@ Spring Data MongoDB Reactive Repository support supports infinite streams by ann
 [source,java]
 ----
 
-public interface PersonRepository<Person, String> {
+public interface PersonRepository extends ReactiveMongoRepository<Person, String> {
 
   @InfiniteStream
-  Flux<Person> findByKey(String key);
+  Flux<Person> findByFirstname(String firstname);
 
 }
 
-Flux<Person> stream = template.tail(query(where("name").is("Joe")), Person.class);
+Flux<Person> stream = repository.findByFirstname("Joe");
 
 Cancellation cancellation = stream.doOnNext(person -> System.out.println(person)).subscribe();
 

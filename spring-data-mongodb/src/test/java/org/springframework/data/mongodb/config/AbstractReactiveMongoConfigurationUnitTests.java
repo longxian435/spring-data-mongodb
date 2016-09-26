@@ -41,12 +41,12 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import example.first.First;
-import example.second.Second;
-
 import com.mongodb.Mongo;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
+
+import example.first.First;
+import example.second.Second;
 
 /**
  * Unit tests for {@link AbstractReactiveMongoConfiguration}.
@@ -103,6 +103,9 @@ public class AbstractReactiveMongoConfigurationUnitTests {
 		context.close();
 	}
 
+	/**
+	 * @see DATAMONGO-1444
+	 */
 	@Test
 	public void returnsUninitializedMappingContext() throws Exception {
 
@@ -180,7 +183,7 @@ public class AbstractReactiveMongoConfigurationUnitTests {
 		}
 
 		@Override
-		public MongoClient mongoClient() throws Exception {
+		public MongoClient mongoClient() {
 			return MongoClients.create();
 		}
 
@@ -208,7 +211,7 @@ public class AbstractReactiveMongoConfigurationUnitTests {
 		}
 
 		@Override
-		public MongoClient mongoClient() throws Exception {
+		public MongoClient mongoClient() {
 			return MongoClients.create();
 		}
 
