@@ -127,7 +127,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindByLastName() throws Exception {
+	public void shouldFindByLastName() {
 
 		List<Person> list = repository.findByLastname("Matthews").collectList().block();
 
@@ -138,7 +138,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindMonoOfPage() throws Exception {
+	public void shouldFindMonoOfPage() {
 
 		Mono<Page<Person>> pageMono = repository.findMonoPageByLastname("Matthews", new PageRequest(0, 1));
 
@@ -159,7 +159,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindMonoOfSlice() throws Exception {
+	public void shouldFindMonoOfSlice() {
 
 		Mono<Slice<Person>> pageMono = repository.findMonoSliceByLastname("Matthews", new PageRequest(0, 1));
 
@@ -180,7 +180,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindOneByLastName() throws Exception {
+	public void shouldFindOneByLastName() {
 
 		Person carter = repository.findOneByLastname("Beauford").block();
 
@@ -191,7 +191,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindOneByPublisherOfLastName() throws Exception {
+	public void shouldFindOneByPublisherOfLastName() {
 
 		Person carter = repository.findByLastname(Mono.just("Beauford")).block();
 
@@ -202,7 +202,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindByPublisherOfLastNameIn() throws Exception {
+	public void shouldFindByPublisherOfLastNameIn() {
 
 		List<Person> persons = repository.findByLastnameIn(Flux.just("Beauford", "Matthews")).collectList().block();
 
@@ -213,7 +213,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindByPublisherOfLastNameInAndAgeGreater() throws Exception {
+	public void shouldFindByPublisherOfLastNameInAndAgeGreater() {
 
 		List<Person> persons = repository.findByLastnameInAndAgeGreaterThan(Flux.just("Beauford", "Matthews"), 41)
 				.collectList().block();
@@ -225,7 +225,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindUsingPublishersInStringQuery() throws Exception {
+	public void shouldFindUsingPublishersInStringQuery() {
 
 		List<Person> persons = repository.findStringQuery(Flux.just("Beauford", "Matthews"), Mono.just(41)).collectList()
 				.block();
@@ -237,7 +237,7 @@ public class ReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanF
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindByLastNameAndSort() throws Exception {
+	public void shouldFindByLastNameAndSort() {
 
 		List<Person> persons = repository.findByLastname("Matthews", new Sort(new Order(ASC, "age"))).collectList().block();
 		assertThat(persons, contains(oliver, dave));

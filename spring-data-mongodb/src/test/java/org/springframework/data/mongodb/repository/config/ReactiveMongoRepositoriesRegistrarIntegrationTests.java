@@ -36,7 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import com.mongodb.reactivestreams.client.MongoClients;
 
 /**
- * Integration tests for {@link MongoRepositoriesRegistrar}.
+ * Integration tests for {@link ReactiveMongoRepositoriesRegistrar}.
  *
  * @author Mark Paluch
  */

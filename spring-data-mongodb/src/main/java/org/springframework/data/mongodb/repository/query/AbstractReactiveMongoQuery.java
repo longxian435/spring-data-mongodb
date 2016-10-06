@@ -96,22 +96,25 @@ public abstract class AbstractReactiveMongoQuery implements RepositoryQuery {
 	@SuppressWarnings("unchecked")
 	private Object executeDeferred(Object[] parameters) {
 
+		ReactiveMongoParameterAccessor parameterAccessor = new ReactiveMongoParameterAccessor(method, parameters);
+
 		if (getQueryMethod().isCollectionQuery()) {
-			return Flux.defer(() -> (Publisher<Object>) execute(new ReactiveMongoParameterAccessor(method, parameters)));
+			return Flux.defer(() -> (Publisher<Object>) execute(parameterAccessor));
 		}
 
-		return Mono.defer(() -> (Mono<Object>) execute(new ReactiveMongoParameterAccessor(method, parameters)));
+		return Mono.defer(() -> (Mono<Object>) execute(parameterAccessor));
 	}
 
-	private Object execute(MongoParameterAccessor accessor) {
-		Query query = createQuery(new ConvertingParameterAccessor(operations.getConverter(), accessor));
+	private Object execute(MongoParameterAccessor parameterAccessor) {
+
+		Query query = createQuery(new ConvertingParameterAccessor(operations.getConverter(), parameterAccessor));
 
 		applyQueryMetaAttributesWhenPresent(query);
 
-		ResultProcessor processor = method.getResultProcessor().withDynamicProjection(accessor);
+		ResultProcessor processor = method.getResultProcessor().withDynamicProjection(parameterAccessor);
 		String collection = method.getEntityInformation().getCollectionName();
 
-		ReactiveMongoQueryExecution execution = getExecution(query, accessor,
+		ReactiveMongoQueryExecution execution = getExecution(query, parameterAccessor,
 				new ResultProcessingConverter(processor, operations, instantiators));
 
 		return execution.execute(query, processor.getReturnedType().getDomainType(), collection);

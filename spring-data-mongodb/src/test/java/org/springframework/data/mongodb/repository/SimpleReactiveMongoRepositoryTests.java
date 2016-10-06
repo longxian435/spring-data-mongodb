@@ -59,14 +59,14 @@ import reactor.test.TestSubscriber;
 @ContextConfiguration("classpath:reactive-infrastructure.xml")
 public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware, BeanFactoryAware {
 
-	@Autowired ReactiveMongoTemplate template;
+	@Autowired private ReactiveMongoTemplate template;
 
-	ReactiveMongoRepositoryFactory factory;
+	private ReactiveMongoRepositoryFactory factory;
 	private ClassLoader classLoader;
 	private BeanFactory beanFactory;
 	private ReactivePersonRepostitory repository;
 
-	ReactivePerson dave, oliver, carter, boyd, stefan, leroi, alicia;
+	private ReactivePerson dave, oliver, carter, boyd, stefan, leroi, alicia;
 
 	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
@@ -554,7 +554,7 @@ public class SimpleReactiveMongoRepositoryTests implements BeanClassLoaderAware,
 
 	}
 
-	static interface ReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
+	interface ReactivePersonRepostitory extends ReactiveMongoRepository<ReactivePerson, String> {
 
 		Flux<ReactivePerson> findByLastname(String lastname);
 

@@ -55,9 +55,6 @@ import org.springframework.util.Assert;
  */
 public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 
-	@SuppressWarnings("unchecked") private static final List<Class<? extends Serializable>> GEO_NEAR_RESULTS = Arrays
-			.asList(GeoResult.class);
-
 	private static final SpelExpressionParser EXPRESSION_PARSER = new SpelExpressionParser();
 
 	private final ReactiveMongoOperations operations;
@@ -138,8 +135,7 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 	/**
 	 * {@link QueryLookupStrategy} to create {@link PartTreeMongoQuery} instances.
 	 *
-	 * @author Oliver Gierke
-	 * @author Thomas Darimont
+	 * @author Mark Paluch
 	 */
 	private static class MongoQueryLookupStrategy implements QueryLookupStrategy {
 

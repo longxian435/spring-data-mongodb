@@ -30,14 +30,13 @@ import reactor.core.publisher.Mono;
  * Mongo specific {@link org.springframework.data.repository.Repository} interface with reactive support.
  *
  * @author Mark Paluch
+ * @since 2.0
  */
 @NoRepositoryBean
 public interface ReactiveMongoRepository<T, ID extends Serializable> extends ReactivePagingAndSortingRepository<T, ID> {
 
-	<S extends T> Flux<S> save(Iterable<S> entites);
-
 	/**
-	 * Inserts the given a given entity. Assumes the instance to be new to be able to apply insertion optimizations. Use
+	 * Inserts the given entity. Assumes the instance to be new to be able to apply insertion optimizations. Use
 	 * the returned instance for further operations as the save operation might have changed the entity instance
 	 * completely. Prefer using {@link #save(Object)} instead to avoid the usage of store-specific API.
 	 *
@@ -47,17 +46,17 @@ public interface ReactiveMongoRepository<T, ID extends Serializable> extends Rea
 	<S extends T> Mono<S> insert(S entity);
 
 	/**
-	 * Inserts the given a given entities. Assumes the instance to be new to be able to apply insertion optimizations. Use
+	 * Inserts the given entities. Assumes the instance to be new to be able to apply insertion optimizations. Use
 	 * the returned instance for further operations as the save operation might have changed the entity instance
 	 * completely. Prefer using {@link #save(Object)} instead to avoid the usage of store-specific API.
 	 *
-	 * @param entity must not be {@literal null}.
+	 * @param entities must not be {@literal null}.
 	 * @return the saved entity
 	 */
-	<S extends T> Flux<S> insert(Iterable<S> entity);
+	<S extends T> Flux<S> insert(Iterable<S> entities);
 
 	/**
-	 * Inserts the given a given entities. Assumes the instance to be new to be able to apply insertion optimizations. Use
+	 * Inserts the given entities. Assumes the instance to be new to be able to apply insertion optimizations. Use
 	 * the returned instance for further operations as the save operation might have changed the entity instance
 	 * completely. Prefer using {@link #save(Object)} instead to avoid the usage of store-specific API.
 	 *

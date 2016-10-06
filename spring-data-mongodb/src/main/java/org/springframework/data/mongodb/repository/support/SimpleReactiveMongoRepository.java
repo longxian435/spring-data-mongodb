@@ -44,6 +44,7 @@ import reactor.core.publisher.Mono;
  * Reactive repository base implementation for Mongo.
  *
  * @author Mark Paluch
+ * @since 2.0
  */
 public class SimpleReactiveMongoRepository<T, ID extends Serializable> implements ReactiveMongoRepository<T, ID> {
 
@@ -136,9 +137,9 @@ public class SimpleReactiveMongoRepository<T, ID extends Serializable> implement
 	@Override
 	public Flux<T> findAll(Publisher<ID> idStream) {
 
-		Assert.notNull(idStream, "The given Publisher of entities must not be null!");
+		Assert.notNull(idStream, "The given Publisher of Id's must not be null!");
 
-		return Flux.from(idStream).buffer().flatMap(ids -> findAll(ids));
+		return Flux.from(idStream).buffer().flatMap(this::findAll);
 	}
 
 	@Override
@@ -277,7 +278,7 @@ public class SimpleReactiveMongoRepository<T, ID extends Serializable> implement
 
 		return mongoOperations
 				.remove(getIdQuery(id), entityInformation.getJavaType(), entityInformation.getCollectionName())
-				.then(deleteResult -> Mono.empty());
+				.then();
 	}
 
 	public Mono<Void> delete(T entity) {

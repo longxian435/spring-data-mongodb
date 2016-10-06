@@ -39,6 +39,8 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import com.mongodb.client.result.DeleteResult;
+
 /**
  * Set of classes to contain query execution strategies. Depending (mostly) on the return type of a
  * {@link org.springframework.data.repository.query.QueryMethod} a {@link AbstractReactiveMongoQuery} can be executed in various
@@ -245,7 +247,7 @@ interface ReactiveMongoQueryExecution {
 				return operations.findAllAndRemove(query, type, collection);
 			}
 
-			return operations.remove(query, type, collection).map(deleteResult -> deleteResult.getDeletedCount());
+			return operations.remove(query, type, collection).map(DeleteResult::getDeletedCount);
 		}
 	}
 

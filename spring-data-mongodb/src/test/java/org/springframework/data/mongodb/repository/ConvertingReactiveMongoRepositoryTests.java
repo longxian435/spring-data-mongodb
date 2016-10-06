@@ -204,7 +204,7 @@ public class ConvertingReactiveMongoRepositoryTests {
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindOneByPublisherOfLastName() throws Exception {
+	public void shouldFindOneBySingleOfLastName() throws Exception {
 
 		ReactivePerson carter = reactiveRepository.findByLastname(Single.just("Beauford")).block();
 
@@ -215,7 +215,7 @@ public class ConvertingReactiveMongoRepositoryTests {
 	 * @see DATAMONGO-1444
 	 */
 	@Test
-	public void shouldFindByPublisherOfLastNameIn() throws Exception {
+	public void shouldFindByObservableOfLastNameIn() throws Exception {
 
 		List<ReactivePerson> persons = reactiveRepository.findByLastnameIn(Observable.just("Beauford", "Matthews"))
 				.collectList().block();
