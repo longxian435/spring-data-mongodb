@@ -17,7 +17,7 @@ package org.springframework.data.mongodb.repository.config;
 
 import java.lang.reflect.Method;
 
-import org.springframework.data.repository.query.ReactiveWrappers;
+import org.springframework.data.repository.util.ReactiveWrappers;
 
 import lombok.experimental.UtilityClass;
 

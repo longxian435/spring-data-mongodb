@@ -32,9 +32,9 @@ import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecu
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.SlicedExecution;
 import org.springframework.data.mongodb.repository.query.ReactiveMongoQueryExecution.TailExecution;
 import org.springframework.data.repository.query.ParameterAccessor;
-import org.springframework.data.repository.query.ReactiveWrapperConverters;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.query.ResultProcessor;
+import org.springframework.data.repository.util.ReactiveWrapperConverters;
 import org.springframework.util.Assert;
 
 import reactor.core.publisher.Flux;

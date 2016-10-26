@@ -28,9 +28,9 @@ import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.repository.support.ReactivePageImpl;
 import org.springframework.data.mongodb.repository.support.ReactiveSliceImpl;
-import org.springframework.data.repository.query.ReactiveWrappers;
 import org.springframework.data.repository.query.ResultProcessor;
 import org.springframework.data.repository.query.ReturnedType;
+import org.springframework.data.repository.util.ReactiveWrappers;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.util.ClassUtils;
 

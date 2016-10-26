@@ -15,7 +15,6 @@
  */
 package org.springframework.data.mongodb.repository.query;
 
-import static org.springframework.data.repository.query.ReactiveWrappers.*;
 import static org.springframework.data.repository.util.ClassUtils.*;
 
 import java.lang.reflect.Method;
@@ -30,7 +29,7 @@ import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentProperty;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.RepositoryMetadata;
-import org.springframework.data.repository.query.ReactiveWrappers;
+import org.springframework.data.repository.util.ReactiveWrappers;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
 
@@ -64,8 +63,8 @@ public class ReactiveMongoQueryMethod extends MongoQueryMethod {
 
 			TypeInformation<?> returnType = ClassTypeInformation.fromReturnTypeOf(method);
 
-			boolean multiWrapper = ReactiveWrappers.isMultiType(returnType.getType());
-			boolean singleWrapperWithWrappedPageableResult = ReactiveWrappers.isSingleType(returnType.getType())
+			boolean multiWrapper = ReactiveWrappers.isMultiValueType(returnType.getType());
+			boolean singleWrapperWithWrappedPageableResult = ReactiveWrappers.isSingleValueType(returnType.getType())
 					&& (PAGE_TYPE.isAssignableFrom(returnType.getComponentType())
 							|| SLICE_TYPE.isAssignableFrom(returnType.getComponentType()));
 
@@ -99,7 +98,7 @@ public class ReactiveMongoQueryMethod extends MongoQueryMethod {
 	 */
 	@Override
 	public boolean isCollectionQuery() {
-		return !(isPageQuery() || isSliceQuery()) && isMultiType(method.getReturnType());
+		return !(isPageQuery() || isSliceQuery()) && ReactiveWrappers.isMultiValueType(method.getReturnType());
 	}
 
 	/* 

@@ -15,7 +15,8 @@
  */
 package org.springframework.data.mongodb.repository.query;
 
-import org.springframework.data.repository.query.ReactiveWrapperConverters;
+import org.springframework.data.repository.util.ReactiveWrapperConverters;
+import org.springframework.data.repository.util.ReactiveWrappers;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,11 +48,11 @@ class ReactiveMongoParameterAccessor extends MongoParametersParameterAccessor {
 				continue;
 			}
 
-			if (!ReactiveWrapperConverters.supports(value.getClass())) {
+			if (!ReactiveWrappers.supports(value.getClass())) {
 				continue;
 			}
 
-			if (ReactiveWrapperConverters.isSingleLike(value.getClass())) {
+			if (ReactiveWrappers.isSingleValueType(value.getClass())) {
 				subscriptions[i] = ReactiveWrapperConverters.toWrapper(value, Mono.class).subscribe();
 			} else {
 				subscriptions[i] = ReactiveWrapperConverters.toWrapper(value, Flux.class).collectList().subscribe();
