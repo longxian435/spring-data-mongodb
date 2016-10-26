@@ -18,11 +18,11 @@ package org.springframework.data.mongodb.repository.support;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.List;
 
+import org.reactivestreams.Publisher;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.data.geo.GeoResult;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mapping.model.MappingException;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
@@ -44,8 +44,11 @@ import org.springframework.data.repository.query.QueryLookupStrategy;
 import org.springframework.data.repository.query.QueryLookupStrategy.Key;
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.data.repository.util.QueryExecutionConverters;
+import org.springframework.data.repository.util.ReactiveWrapperConverters;
+import org.springframework.data.repository.util.ReactiveWrappers;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 
 /**
  * Factory to create {@link org.springframework.data.mongodb.repository.ReactiveMongoRepository} instances.
@@ -115,6 +118,53 @@ public class ReactiveMongoRepositoryFactory extends RepositoryFactorySupport {
 	 */
 	public <T, ID extends Serializable> MongoEntityInformation<T, ID> getEntityInformation(Class<T> domainClass) {
 		return getEntityInformation(domainClass, null);
+	}
+
+	/* 
+	 * (non-Javadoc)
+	 * @see org.springframework.data.repository.core.support.RepositoryFactorySupport#validate(org.springframework.data.repository.core.RepositoryMetadata)
+	 */
+	@Override
+	protected void validate(RepositoryMetadata repositoryMetadata) {
+
+		if (!ReactiveWrappers.isAvailable()) {
+			throw new InvalidDataAccessApiUsageException(
+					String.format("Cannot implement Repository %s without reactive library support.",
+							repositoryMetadata.getRepositoryInterface().getName()));
+		}
+
+		Arrays.stream(repositoryMetadata.getRepositoryInterface().getMethods())
+				.forEach(ReactiveMongoRepositoryFactory::validate);
+	}
+
+	/**
+	 * Reactive MongoDB support requires reactive wrapper support. If return type/parameters are reactive wrapper types,
+	 * then it's required to be able to convert these into Publisher.
+	 * 
+	 * @param method the method to validate.
+	 */
+	private static void validate(Method method) {
+
+		if (ReactiveWrappers.supports(method.getReturnType())
+				&& !ClassUtils.isAssignable(Publisher.class, method.getReturnType())) {
+
+			if (!ReactiveWrapperConverters.supports(method.getReturnType())) {
+
+				throw new InvalidDataAccessApiUsageException(
+						String.format("No reactive type converter found for type %s used in %s, method %s.",
+								method.getReturnType().getName(), method.getDeclaringClass().getName(), method));
+			}
+		}
+
+		Arrays.stream(method.getParameterTypes()) //
+				.filter(ReactiveWrappers::supports) //
+				.filter(parameterType -> !ClassUtils.isAssignable(Publisher.class, parameterType)) //
+				.filter(parameterType -> !ReactiveWrapperConverters.supports(parameterType)) //
+				.forEach(parameterType -> {
+					throw new InvalidDataAccessApiUsageException(
+							String.format("No reactive type converter found for type %s used in %s, method %s.",
+									parameterType.getName(), method.getDeclaringClass().getName(), method));
+				});
 	}
 
 	@SuppressWarnings("unchecked")
