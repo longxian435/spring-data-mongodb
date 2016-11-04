@@ -22,6 +22,11 @@ import com.mongodb.BasicDBList;
  */
 public class DBObjectUtils {
 
+	/**
+	 * 基于数据获取数据的方法
+	 * @param items
+	 * @return
+	 */
 	public static BasicDBList dbList(Object... items) {
 
 		BasicDBList list = new BasicDBList();
